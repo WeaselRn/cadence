@@ -1,11 +1,20 @@
 package com.cadence.gaitradar.core.di
 
+import com.cadence.gaitradar.core.sensors.SensorCollector
+import com.cadence.gaitradar.core.sensors.SensorCollectorImpl
+import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
-    // Foundation DI module for app-wide singletons
+abstract class AppModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindSensorCollector(
+        sensorCollectorImpl: SensorCollectorImpl
+    ): SensorCollector
 }

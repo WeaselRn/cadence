@@ -3,6 +3,7 @@ package com.cadence.gaitradar.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -10,7 +11,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cadence.gaitradar.feature.about.AboutScreen
+import com.cadence.gaitradar.feature.assessment.AssessmentActiveScreen
 import com.cadence.gaitradar.feature.assessment.AssessmentIntroScreen
+import com.cadence.gaitradar.feature.assessment.AssessmentReadinessScreen
+import com.cadence.gaitradar.feature.assessment.AssessmentSummaryScreen
+import com.cadence.gaitradar.feature.assessment.AssessmentViewModel
+import com.cadence.gaitradar.feature.assessment.SessionStatus
 import com.cadence.gaitradar.feature.history.HistoryScreen
 import com.cadence.gaitradar.feature.home.HomeScreen
 import com.cadence.gaitradar.feature.onboarding.HowItWorksScreen
@@ -28,11 +34,11 @@ import com.cadence.gaitradar.feature.settings.SettingsScreen
 fun CadenceNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    viewModel: OnboardingViewModel = hiltViewModel()
+    onboardingViewModel: OnboardingViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val onboardingState by onboardingViewModel.uiState.collectAsState()
 
-    val startDestination = if (uiState.isCompleted) {
+    val startDestination = if (onboardingState.isCompleted) {
         Screen.Home.route
     } else {
         Screen.Welcome.route
@@ -57,8 +63,8 @@ fun CadenceNavHost(
 
         composable(route = Screen.HowItWorks.route) {
             HowItWorksScreen(
-                page = uiState.howItWorksPage,
-                onPageChanged = { page -> viewModel.onHowItWorksPageChanged(page) },
+                page = onboardingState.howItWorksPage,
+                onPageChanged = { page -> onboardingViewModel.onHowItWorksPageChanged(page) },
                 onFinished = {
                     navController.navigate(Screen.Privacy.route) {
                         popUpTo(Screen.Welcome.route)
@@ -83,14 +89,14 @@ fun CadenceNavHost(
 
         composable(route = Screen.PersonalInfo.route) {
             PersonalInformationScreen(
-                profile = uiState.profile,
-                firstNameError = uiState.firstNameError,
-                lastNameError = uiState.lastNameError,
-                ageOrDobError = uiState.ageOrDobError,
-                heightError = uiState.heightError,
-                onProfileChanged = { update -> viewModel.updateProfileField(update) },
+                profile = onboardingState.profile,
+                firstNameError = onboardingState.firstNameError,
+                lastNameError = onboardingState.lastNameError,
+                ageOrDobError = onboardingState.ageOrDobError,
+                heightError = onboardingState.heightError,
+                onProfileChanged = { update -> onboardingViewModel.updateProfileField(update) },
                 onContinue = {
-                    viewModel.validateAndProceed {
+                    onboardingViewModel.validateAndProceed {
                         navController.navigate(Screen.SensorExplanation.route)
                     }
                 },
@@ -103,7 +109,7 @@ fun CadenceNavHost(
         composable(route = Screen.SensorExplanation.route) {
             SensorExplanationScreen(
                 onFinishOnboarding = {
-                    viewModel.completeOnboarding()
+                    onboardingViewModel.completeOnboarding()
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Welcome.route) { inclusive = true }
                     }
@@ -135,13 +141,77 @@ fun CadenceNavHost(
             )
         }
 
+        // Phase 3 Real Assessment Flow
         composable(route = Screen.AssessmentIntro.route) {
             AssessmentIntroScreen(
                 onGetReady = {
-                    navController.popBackStack()
+                    navController.navigate(Screen.AssessmentReadiness.route)
                 },
                 onBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.AssessmentReadiness.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.AssessmentIntro.route)
+            }
+            val assessmentViewModel: AssessmentViewModel = hiltViewModel(parentEntry)
+            val assessmentState by assessmentViewModel.uiState.collectAsState()
+
+            AssessmentReadinessScreen(
+                isAccelAvailable = assessmentState.isAccelAvailable,
+                isGyroAvailable = assessmentState.isGyroAvailable,
+                isSensorsAvailable = assessmentState.isSensorsAvailable,
+                onStartWalk = {
+                    assessmentViewModel.start30sCollection()
+                    navController.navigate(Screen.AssessmentActive.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.AssessmentActive.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.AssessmentIntro.route)
+            }
+            val assessmentViewModel: AssessmentViewModel = hiltViewModel(parentEntry)
+            val assessmentState by assessmentViewModel.uiState.collectAsState()
+
+            // Automatically navigate to Summary when completed
+            if (assessmentState.sessionStatus == SessionStatus.COMPLETED) {
+                navController.navigate(Screen.AssessmentSummary.route) {
+                    popUpTo(Screen.AssessmentIntro.route) { inclusive = true }
+                }
+            }
+
+            AssessmentActiveScreen(
+                remainingSeconds = assessmentState.remainingSeconds,
+                sampleCount = assessmentState.sampleCount,
+                lastSample = assessmentState.lastSample,
+                onStopAssessment = {
+                    assessmentViewModel.cancelCollection()
+                    navController.popBackStack(Screen.Home.route, false)
+                }
+            )
+        }
+
+        composable(route = Screen.AssessmentSummary.route) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.AssessmentIntro.route)
+            }
+            val assessmentViewModel: AssessmentViewModel = hiltViewModel(parentEntry)
+            val assessmentState by assessmentViewModel.uiState.collectAsState()
+
+            AssessmentSummaryScreen(
+                session = assessmentState.completedSession,
+                onReturnHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
                 }
             )
         }

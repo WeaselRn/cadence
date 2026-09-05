@@ -3,6 +3,9 @@ package com.cadence.gaitradar.navigation
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object AssessmentIntro : Screen("assessment_intro")
+    data object AssessmentReadiness : Screen("assessment_readiness")
+    data object AssessmentActive : Screen("assessment_active")
+    data object AssessmentSummary : Screen("assessment_summary")
     data object History : Screen("history")
     data object Profile : Screen("profile")
     data object EditProfile : Screen("edit_profile")
