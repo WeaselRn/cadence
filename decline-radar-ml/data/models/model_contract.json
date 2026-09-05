@@ -1,0 +1,88 @@
+{
+  "model_name": "gait_tcn",
+  "version": "1.0.0",
+  "architecture": "1D Temporal Convolutional Network (3 causal blocks, dilations 1, 2, 4)",
+  "parameters": {
+    "total_params": 11713,
+    "quantized_tflite_size_bytes": 25776,
+    "quantization_type": "INT8"
+  },
+  "input": {
+    "tensor_shape": [1, 1500, 6],
+    "dtype": "float32",
+    "sample_rate_hz": 50.0,
+    "window_duration_seconds": 30.0,
+    "coordinate_system": "Android Sensor Coordinate System (pocket carry)",
+    "channels": [
+      {
+        "index": 0,
+        "name": "accel_x",
+        "unit": "m/s^2",
+        "mean": 1.7237821340560913,
+        "std": 3.8410803079605103
+      },
+      {
+        "index": 1,
+        "name": "accel_y",
+        "unit": "m/s^2",
+        "mean": -0.3197662681341171,
+        "std": 1.0826526403427124
+      },
+      {
+        "index": 2,
+        "name": "accel_z",
+        "unit": "m/s^2",
+        "mean": 8.71489520072937,
+        "std": 4.420521068572998
+      },
+      {
+        "index": 3,
+        "name": "gyro_x",
+        "unit": "rad/s",
+        "mean": 0.0001550798441166679,
+        "std": 0.5773674726486206
+      },
+      {
+        "index": 4,
+        "name": "gyro_y",
+        "unit": "rad/s",
+        "mean": -0.00027176467701792717,
+        "std": 0.5855300307273865
+      },
+      {
+        "index": 5,
+        "name": "gyro_z",
+        "unit": "rad/s",
+        "mean": -0.00045357465520501137,
+        "std": 0.5558213353157043
+      }
+    ],
+    "channel_mean": [
+      1.7237821340560913,
+      -0.3197662681341171,
+      8.71489520072937,
+      0.0001550798441166679,
+      -0.00027176467701792717,
+      -0.00045357465520501137
+    ],
+    "channel_std": [
+      3.8410803079605103,
+      1.0826526403427124,
+      4.420521068572998,
+      0.5773674726486206,
+      0.5855300307273865,
+      0.5558213353157043
+    ]
+  },
+  "output": {
+    "tensor_shape": [1, 1],
+    "dtype": "float32",
+    "name": "p_irregular",
+    "description": "Continuous probability in [0.0, 1.0] representing likelihood of atypical/perturbed gait dynamics"
+  },
+  "score_translation": {
+    "formula": "mobility_stability_score = round((1.0 - p_irregular) * 100)",
+    "range": [0, 100],
+    "output_dtype": "int"
+  }
+}
