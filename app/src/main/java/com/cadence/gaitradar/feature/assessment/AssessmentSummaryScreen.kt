@@ -303,6 +303,36 @@ fun AssessmentSummaryScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
                 }
+
+                // Medical Disclaimer Card
+                if (isValid) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = MaterialTheme.shapes.large
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Text(
+                                text = "Important Notice",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Disclaimer: This score is a movement-pattern consistency metric based on your walking dynamics. It is not a clinical diagnosis or medical assessment. Consult a qualified healthcare professional for medical concerns.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
