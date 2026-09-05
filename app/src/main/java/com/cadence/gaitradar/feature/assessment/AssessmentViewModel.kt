@@ -2,6 +2,7 @@ package com.cadence.gaitradar.feature.assessment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadence.gaitradar.core.database.AssessmentRepository
 import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
 import com.cadence.gaitradar.core.quality.ImuQualityGate
@@ -51,7 +52,8 @@ class AssessmentViewModel @Inject constructor(
     private val sensorCollector: SensorCollector,
     private val qualityGate: ImuQualityGate,
     private val gaitMetricsEngine: GaitMetricsEngine,
-    private val mlInferenceAdapter: MlInferenceAdapter
+    private val mlInferenceAdapter: MlInferenceAdapter,
+    private val assessmentRepository: AssessmentRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssessmentUiState())
@@ -183,10 +185,13 @@ class AssessmentViewModel @Inject constructor(
             var metrics: GaitMetricsResult? = null
             var prediction: MlPrediction? = null
 
-            // ML Guardrail: Execute metrics and ML inference ONLY IF quality check passed
+            // ML Guardrail & Persistence: Execute metrics, ML inference, and Room save ONLY IF quality check passed
             if (qualityEval.isValid) {
                 metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
                 prediction = mlInferenceAdapter.predict(session)
+                if (prediction.isSuccess) {
+                    assessmentRepository.saveAssessment(session, metrics, prediction)
+                }
             }
 
             _uiState.update {
