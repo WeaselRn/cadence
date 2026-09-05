@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -182,12 +184,13 @@ fun CadenceNavHost(
             val assessmentViewModel: AssessmentViewModel = hiltViewModel(parentEntry)
             val assessmentState by assessmentViewModel.uiState.collectAsState()
 
-            // Automatically navigate to Summary when completed
+            var navTriggered by remember { mutableStateOf(false) }
+
+            // Automatically navigate to Summary once when completed
             LaunchedEffect(assessmentState.sessionStatus) {
-                if (assessmentState.sessionStatus == SessionStatus.COMPLETED) {
-                    navController.navigate(Screen.AssessmentSummary.route) {
-                        popUpTo(Screen.AssessmentIntro.route) { inclusive = false }
-                    }
+                if (assessmentState.sessionStatus == SessionStatus.COMPLETED && !navTriggered) {
+                    navTriggered = true
+                    navController.navigate(Screen.AssessmentSummary.route)
                 }
             }
 
@@ -213,14 +216,12 @@ fun CadenceNavHost(
                 session = assessmentState.completedSession,
                 qualityResult = assessmentState.qualityResult,
                 onRetry = {
-                    navController.navigate(Screen.AssessmentIntro.route) {
-                        popUpTo(Screen.Home.route)
-                    }
+                    assessmentViewModel.resetSession()
+                    navController.popBackStack(Screen.AssessmentIntro.route, false)
                 },
                 onReturnHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
+                    assessmentViewModel.resetSession()
+                    navController.popBackStack(Screen.Home.route, false)
                 }
             )
         }

@@ -73,6 +73,32 @@ class AssessmentViewModel @Inject constructor(
         }
     }
 
+    fun resetSession() {
+        collectionJob?.cancel()
+        timerJob?.cancel()
+        samplesList.clear()
+        sensorCollector.stopCollection()
+
+        val accelOk = sensorCollector.isAccelerometerAvailable()
+        val gyroOk = sensorCollector.isGyroscopeAvailable()
+        val bothOk = sensorCollector.isSensorsAvailable()
+
+        _uiState.update {
+            it.copy(
+                isAccelAvailable = accelOk,
+                isGyroAvailable = gyroOk,
+                isSensorsAvailable = bothOk,
+                sessionStatus = if (bothOk) SessionStatus.READINESS_CHECK else SessionStatus.ERROR,
+                remainingSeconds = 30,
+                sampleCount = 0,
+                lastSample = null,
+                completedSession = null,
+                qualityResult = null,
+                errorMessage = null
+            )
+        }
+    }
+
     fun start30sCollection() {
         if (!_uiState.value.isSensorsAvailable) return
 
