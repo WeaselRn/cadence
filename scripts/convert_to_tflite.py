@@ -21,11 +21,10 @@ quantization silently destroying accuracy (a common failure mode).
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..",))
 import numpy as np
 import tensorflow as tf
-from synthetic.generator import generate_dataset, GeneratorConfig
+from src.synthetic.generator import generate_dataset, GeneratorConfig
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "gait_tcn.keras")
 NORM_STATS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "normalization_stats.npz")
