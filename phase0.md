@@ -34,7 +34,9 @@ The project must be runnable after this phase.
    Hilt
    Room
    Android SensorManager
-   TensorFlow Lite dependency/integration foundation as appropriate
+   Do not add TensorFlow Lite dependencies in Phase 0.
+   Create only the MlInferenceAdapter interface.
+   TFLite dependencies and implementation will be introduced in the dedicated ML phase.
    Use current stable versions compatible with the project.
    Do not introduce unnecessary dependencies.
 
@@ -117,12 +119,10 @@ The project must be runnable after this phase.
    Do not create the complete dependency graph for future sensors, ML, and database functionality yet unless it is necessary for compilation.
 
 8. Room Foundation
-   Configure Room so that the project is ready for later local persistence.
-   Do NOT implement the complete product database yet.
-   Do NOT create the final User, Assessment, GaitAnalysis, UserBaseline, and Settings entities yet.
-   Those will be implemented in a later phase.
-   If a minimal placeholder is technically required for Room configuration, keep it minimal and clearly isolated.
-
+   - Do not create the production Room database in Phase 0.
+   - Do not create User, Assessment, GaitAnalysis, UserBaseline, or Settings entities.
+   - Create only the database package structure if useful.
+   - Room implementation begins in the persistence phase.
 9. Sensor Layer Foundation
    Create the sensor-layer architecture for:
    Android SensorManager
