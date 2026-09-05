@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cadence.gaitradar.core.baseline.BaselineComparison
@@ -72,10 +73,11 @@ fun AssessmentSummaryScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = if (isValid) "Assessment Complete" else "Quality Check Failed",
-                    style = MaterialTheme.typography.headlineLarge,
+                    text = if (isValid) "Assessment Complete" else "We couldn't get a reliable assessment",
+                    style = MaterialTheme.typography.headlineMedium,
                     color = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -84,9 +86,10 @@ fun AssessmentSummaryScreen(
                     text = if (isValid)
                         "Raw 6-axis motion data analyzed locally via TFLite TCN."
                     else
-                        "The recording did not meet quality requirements for analysis.",
+                        "The movement data wasn't clear enough to analyze this time.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -132,9 +135,10 @@ fun AssessmentSummaryScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                text = "Higher score indicates movement dynamics consistent with regular walking patterns.",
+                                text = "Movement-pattern consistency score based on your 30-second walk.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -211,7 +215,7 @@ fun AssessmentSummaryScreen(
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            text = if (isValid) "Quality Gate: PASSED ✓" else "Quality Gate: RETRY REQUIRED ⚠️",
+                            text = if (isValid) "Quality Gate: PASSED ✓" else "Quality Check: TRY AGAIN ⚠️",
                             style = MaterialTheme.typography.titleLarge,
                             color = if (isValid) Color(0xFF2E7D32) else Color(0xFFE65100),
                             fontWeight = FontWeight.Bold
@@ -221,7 +225,7 @@ fun AssessmentSummaryScreen(
                             text = if (isValid)
                                 "Session contains reliable 6-axis IMU samples evaluated by TFLite model."
                             else
-                                qualityResult?.failureMessage ?: "Session was incomplete or contained irregular motion data.",
+                                qualityResult?.failureMessage ?: "The movement data wasn't clear enough to analyze this time.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -231,7 +235,7 @@ fun AssessmentSummaryScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Physical Gait Metrics Card
-                if (isValid && gaitMetrics != null && gaitMetrics.isCalculated) {
+                if (isValid && gaitMetrics != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -252,13 +256,13 @@ fun AssessmentSummaryScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            SummaryRow("Estimated Step Count", "${gaitMetrics.stepCount ?: 0} steps")
+                            SummaryRow("Cadence", gaitMetrics.cadenceStepsPerMin?.let { "${"%.1f".format(it)} steps/min" } ?: "—")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Cadence", if (gaitMetrics.cadenceStepsPerMin != null) "${"%.1f".format(gaitMetrics.cadenceStepsPerMin)} steps/min" else "N/A")
+                            SummaryRow("Estimated Walking Speed", gaitMetrics.estimatedSpeedMps?.let { "${"%.2f".format(it)} m/s" } ?: "—")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Mean Step Interval", if (gaitMetrics.meanStepIntervalMs != null) "${"%.0f".format(gaitMetrics.meanStepIntervalMs)} ms" else "N/A")
+                            SummaryRow("Step Time Variability", gaitMetrics.stepTimeVariabilityMs?.let { "${"%.1f".format(it)} ms" } ?: "—")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Step-Time Variability", if (gaitMetrics.stepTimeVariabilityMs != null) "${"%.1f".format(gaitMetrics.stepTimeVariabilityMs)} ms" else "N/A")
+                            SummaryRow("Symmetry Index", gaitMetrics.symmetryIndex?.let { "%.2f".format(it) } ?: "—")
                         }
                     }
 
@@ -317,7 +321,7 @@ fun AssessmentSummaryScreen(
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Text(
-                            text = "Retry Assessment",
+                            text = "Try Again",
                             style = MaterialTheme.typography.titleLarge
                         )
                     }

@@ -41,6 +41,7 @@ data class AssessmentUiState(
     val isGyroAvailable: Boolean = false,
     val isSensorsAvailable: Boolean = false,
     val sessionStatus: SessionStatus = SessionStatus.IDLE,
+    val processingStatus: ProcessingStatus = ProcessingStatus.IDLE,
     val remainingSeconds: Int = 30,
     val sampleCount: Int = 0,
     val lastSample: ImuSample? = null,
@@ -106,6 +107,7 @@ class AssessmentViewModel @Inject constructor(
                 isGyroAvailable = gyroOk,
                 isSensorsAvailable = bothOk,
                 sessionStatus = if (bothOk) SessionStatus.READINESS_CHECK else SessionStatus.ERROR,
+                processingStatus = ProcessingStatus.IDLE,
                 remainingSeconds = 30,
                 sampleCount = 0,
                 lastSample = null,
@@ -133,6 +135,7 @@ class AssessmentViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 sessionStatus = SessionStatus.COLLECTING,
+                processingStatus = ProcessingStatus.IDLE,
                 remainingSeconds = 30,
                 sampleCount = 0,
                 lastSample = null,
@@ -172,6 +175,7 @@ class AssessmentViewModel @Inject constructor(
     private fun finishCollection(sessionId: String, startTimeMs: Long) {
         collectionJob?.cancel()
         timerJob?.cancel()
+        sensorCollector.stopCollection()
 
         val endTimeMs = System.currentTimeMillis()
         val durationMs = (endTimeMs - startTimeMs).coerceAtLeast(1000L)
@@ -189,46 +193,80 @@ class AssessmentViewModel @Inject constructor(
             averageSamplingRateHz = avgHz
         )
 
-        // Evaluate Deterministic IMU Quality Gate
-        val qualityEval = qualityGate.evaluate(session)
-
         viewModelScope.launch {
-            var metrics: GaitMetricsResult? = null
-            var prediction: MlPrediction? = null
-            var baselineStats: BaselineStats? = null
-            var comparison: BaselineComparison? = null
+            // Step 1: VALIDATING
+            _uiState.update {
+                it.copy(
+                    processingStatus = ProcessingStatus.VALIDATING,
+                    completedSession = session
+                )
+            }
+            delay(150L)
 
-            // ML Guardrail & Baseline: Execute metrics, ML inference, baseline comparison, and Room save ONLY IF quality check passed
-            if (qualityEval.isValid) {
-                metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
-                prediction = mlInferenceAdapter.predict(session)
+            // Evaluate Deterministic IMU Quality Gate
+            val qualityEval = qualityGate.evaluate(session)
 
-                if (prediction.isSuccess) {
-                    // Fetch prior completed assessments to build personal baseline (EXCLUDES CURRENT WALK)
-                    val priorAssessments = assessmentRepository.assessments.first()
-                    baselineStats = baselineEngine.computeBaseline(priorAssessments)
-
-                    val priorConsecutiveDeviations = priorAssessments.firstOrNull()?.consecutiveDeviations ?: 0
-                    comparison = baselineEngine.evaluateComparison(
-                        currentScore = prediction.mobilityStabilityScore,
-                        baselineStats = baselineStats,
-                        priorConsecutiveDeviations = priorConsecutiveDeviations
-                    )
-
-                    // Save assessment into Room with updated consecutive deviations count
-                    assessmentRepository.saveAssessment(
-                        session = session,
-                        gaitMetrics = metrics,
-                        mlPrediction = prediction,
-                        consecutiveDeviations = comparison.consecutiveDeviations
+            if (!qualityEval.isValid) {
+                // Quality Failed Guardrail: Stop immediately, no ML, no save
+                _uiState.update {
+                    it.copy(
+                        sessionStatus = SessionStatus.COMPLETED,
+                        processingStatus = ProcessingStatus.QUALITY_FAILED,
+                        qualityResult = qualityEval
                     )
                 }
+                return@launch
             }
 
+            // Step 2: PREPARING DATA
+            _uiState.update { it.copy(processingStatus = ProcessingStatus.PREPARING_DATA) }
+            delay(100L)
+
+            // Step 3: CALCULATING METRICS
+            _uiState.update { it.copy(processingStatus = ProcessingStatus.CALCULATING_METRICS) }
+            val metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
+
+            // Step 4: RUNNING MODEL
+            _uiState.update { it.copy(processingStatus = ProcessingStatus.RUNNING_MODEL) }
+            val prediction = mlInferenceAdapter.predict(session)
+
+            if (!prediction.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        sessionStatus = SessionStatus.COMPLETED,
+                        processingStatus = ProcessingStatus.PROCESSING_FAILED,
+                        qualityResult = qualityEval,
+                        gaitMetrics = metrics
+                    )
+                }
+                return@launch
+            }
+
+            // Step 5: CALCULATING BASELINE
+            _uiState.update { it.copy(processingStatus = ProcessingStatus.CALCULATING_BASELINE) }
+            val priorAssessments = assessmentRepository.assessments.first()
+            val baselineStats = baselineEngine.computeBaseline(priorAssessments)
+            val priorConsecutive = priorAssessments.firstOrNull()?.consecutiveDeviations ?: 0
+            val comparison = baselineEngine.evaluateComparison(
+                currentScore = prediction.mobilityStabilityScore,
+                baselineStats = baselineStats,
+                priorConsecutiveDeviations = priorConsecutive
+            )
+
+            // Step 6: SAVING
+            _uiState.update { it.copy(processingStatus = ProcessingStatus.SAVING) }
+            assessmentRepository.saveAssessment(
+                session = session,
+                gaitMetrics = metrics,
+                mlPrediction = prediction,
+                consecutiveDeviations = comparison.consecutiveDeviations
+            )
+
+            // Step 7: COMPLETED
             _uiState.update {
                 it.copy(
                     sessionStatus = SessionStatus.COMPLETED,
-                    completedSession = session,
+                    processingStatus = ProcessingStatus.COMPLETED,
                     qualityResult = qualityEval,
                     gaitMetrics = metrics,
                     mlPrediction = prediction,
@@ -247,6 +285,7 @@ class AssessmentViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 sessionStatus = SessionStatus.CANCELLED,
+                processingStatus = ProcessingStatus.IDLE,
                 remainingSeconds = 30
             )
         }

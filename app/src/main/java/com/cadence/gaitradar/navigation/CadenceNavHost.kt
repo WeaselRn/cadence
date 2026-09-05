@@ -198,6 +198,7 @@ fun CadenceNavHost(
                 remainingSeconds = assessmentState.remainingSeconds,
                 sampleCount = assessmentState.sampleCount,
                 lastSample = assessmentState.lastSample,
+                processingStatus = assessmentState.processingStatus,
                 onStopAssessment = {
                     assessmentViewModel.cancelCollection()
                     navController.popBackStack(Screen.Home.route, false)

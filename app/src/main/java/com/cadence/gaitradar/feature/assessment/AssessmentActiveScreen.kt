@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,8 +34,11 @@ fun AssessmentActiveScreen(
     remainingSeconds: Int,
     sampleCount: Int,
     lastSample: ImuSample?,
+    processingStatus: ProcessingStatus = ProcessingStatus.IDLE,
     onStopAssessment: () -> Unit
 ) {
+    val isProcessing = processingStatus != ProcessingStatus.IDLE
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +64,7 @@ fun AssessmentActiveScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "WALKING ASSESSMENT IN PROGRESS",
+                    text = if (isProcessing) "ANALYZING ON YOUR DEVICE" else "WALKING ASSESSMENT IN PROGRESS",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -67,60 +72,104 @@ fun AssessmentActiveScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Countdown Timer Display
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                if (isProcessing) {
+                    // On-Device Processing State Display
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        Text(
-                            text = "$remainingSeconds",
-                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 72.sp),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-
-                        Text(
-                            text = "Seconds Remaining",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(36.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = "🔴 Sampling 6-Axis IMU:",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(64.dp),
+                                strokeWidth = 6.dp,
+                                color = MaterialTheme.colorScheme.primary
                             )
+
+                            Spacer(modifier = Modifier.height(28.dp))
+
                             Text(
-                                text = "$sampleCount samples",
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = "Analyzing on your device",
+                                style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = processingStatus.userMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
                             )
                         }
-
-                        if (lastSample != null) {
-                            Spacer(modifier = Modifier.height(12.dp))
+                    }
+                } else {
+                    // Countdown Timer Display
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
-                                text = "Accel: [${"%.1f".format(lastSample.accelX)}, ${"%.1f".format(lastSample.accelY)}, ${"%.1f".format(lastSample.accelZ)}]",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "$remainingSeconds",
+                                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 72.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+
+                            Text(
+                                text = "Seconds Remaining",
+                                style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🔴 Sampling 6-Axis IMU:",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "$sampleCount samples",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (lastSample != null) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Accel: [${"%.1f".format(lastSample.accelX)}, ${"%.1f".format(lastSample.accelY)}, ${"%.1f".format(lastSample.accelZ)}]",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -139,7 +188,7 @@ fun AssessmentActiveScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "📱 Keep Phone in Pocket",
+                            text = if (isProcessing) "🔒 Private & Offline" else "📱 Keep Phone in Pocket",
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold,
@@ -147,7 +196,10 @@ fun AssessmentActiveScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Walk naturally until the timer completes.",
+                            text = if (isProcessing)
+                                "Processing completely on device using local TFLite model."
+                            else
+                                "Walk naturally until the timer completes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             textAlign = TextAlign.Center
@@ -157,22 +209,24 @@ fun AssessmentActiveScreen(
             }
 
             // Stop Assessment Safety Action
-            Button(
-                onClick = onStopAssessment,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 16.dp),
-                shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text(
-                    text = "Stop Assessment",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onError
-                )
+            if (!isProcessing) {
+                Button(
+                    onClick = onStopAssessment,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(bottom = 16.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(
+                        text = "Stop Assessment",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                }
             }
         }
     }
