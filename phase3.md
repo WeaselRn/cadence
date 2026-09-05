@@ -1,18 +1,18 @@
-PHASE 4 — DETERMINISTIC IMU DATA QUALITY GATE
-Implement ONLY Phase 4 after Phase 3 is complete.
+PHASE 5 — PHYSICAL GAIT METRICS ENGINE
+Implement ONLY Phase 5 after Phase 4 is complete.
 PRIMARY OBJECTIVE
-Validate whether an ImuSession is reliable enough to enter ML preprocessing. The gate is local, deterministic, explainable, testable, and independent of TensorFlow Lite.
-VALIDATION CONTRACT
-ImuSession → ImuQualityGate.evaluate() → QualityResult → PASS or RETRY.
-REQUIRED CHECKS
-Check duration, minimum samples for both sensors, timestamp integrity, finite values, observed sampling stability, and basic signal sanity. Sampling is approximately 50 Hz; do not require exactly 50 Hz.
-DURATION
-Target approximately 30 seconds. Use centralized thresholds; very short sessions such as 5–10 seconds must fail. Do not require exactly 30.000 seconds.
-SIX-AXIS COMPLETENESS
-Both accelerometer and gyroscope streams are required. Reject sessions that cannot support ax, ay, az, gx, gy, gz.
-IMPORTANT ML GUARDRAIL
-If QualityResult.isValid is false, STOP. Do not calculate gait metrics, preprocess for ML, run TFLite, calculate Mobility Stability Score, or save a completed assessment.
-OUTPUT
-QualityResult exposes validity, failure reason, duration, sensor counts, observed rates, timestamp integrity, finite-value status, and signal sanity status. Keep thresholds centralized.
+Extract deterministic physical gait metrics from a quality-passed ImuSession. This engine is separate from the ML model input path.
+PIPELINE
+ImuSession → Quality PASS → GaitMetricsEngine → GaitMetricsResult.
+METRICS
+Calculate available signal-derived metrics such as step count, cadence, mean step interval, step-time variability, movement regularity, acceleration variability, gyroscope variability, and valid PRD-defined symmetry or estimated walking speed when supported.
+ORIENTATION ROBUSTNESS
+Where practical, use magnitude-based representations for physical gait features rather than assuming a fixed phone axis. Keep pocket placement consistent.
+NO ML INPUT COUPLING
+Do NOT feed GaitMetricsResult into the TCN. The model input is the raw six-axis sequence after Phase 6 resampling and normalization.
+NO FABRICATION
+If a metric cannot be calculated reliably, return unavailable/null. Never insert placeholder values or zeros.
+PERFORMANCE
+Run computation off the Compose main thread using the existing coroutine architecture.
 VERIFICATION
-Unit-test valid, short, missing-sensor, low-sample, bad-timestamp, NaN/Infinity, constant/broken-signal, and realistic sampling-variation cases. Test valid/invalid flow on Pixel 9.
+Test normal, slower, faster walking and insufficient events. Verify finite outputs, plausible cadence, no UI freeze, and no execution for failed quality sessions.

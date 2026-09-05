@@ -2,6 +2,8 @@ package com.cadence.gaitradar.feature.assessment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
+import com.cadence.gaitradar.core.metrics.GaitMetricsResult
 import com.cadence.gaitradar.core.quality.ImuQualityGate
 import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSample
@@ -37,13 +39,15 @@ data class AssessmentUiState(
     val lastSample: ImuSample? = null,
     val completedSession: ImuSession? = null,
     val qualityResult: QualityResult? = null,
+    val gaitMetrics: GaitMetricsResult? = null,
     val errorMessage: String? = null
 )
 
 @HiltViewModel
 class AssessmentViewModel @Inject constructor(
     private val sensorCollector: SensorCollector,
-    private val qualityGate: ImuQualityGate
+    private val qualityGate: ImuQualityGate,
+    private val gaitMetricsEngine: GaitMetricsEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssessmentUiState())
@@ -94,6 +98,7 @@ class AssessmentViewModel @Inject constructor(
                 lastSample = null,
                 completedSession = null,
                 qualityResult = null,
+                gaitMetrics = null,
                 errorMessage = null
             )
         }
@@ -117,6 +122,7 @@ class AssessmentViewModel @Inject constructor(
                 lastSample = null,
                 completedSession = null,
                 qualityResult = null,
+                gaitMetrics = null,
                 errorMessage = null
             )
         }
@@ -167,12 +173,18 @@ class AssessmentViewModel @Inject constructor(
         // Evaluate Deterministic IMU Quality Gate
         val qualityEval = qualityGate.evaluate(session)
 
-        _uiState.update {
-            it.copy(
-                sessionStatus = SessionStatus.COMPLETED,
-                completedSession = session,
-                qualityResult = qualityEval
-            )
+        viewModelScope.launch {
+            // Extract Physical Gait Metrics on Dispatchers.Default if quality check passed
+            val metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
+
+            _uiState.update {
+                it.copy(
+                    sessionStatus = SessionStatus.COMPLETED,
+                    completedSession = session,
+                    qualityResult = qualityEval,
+                    gaitMetrics = metrics
+                )
+            }
         }
     }
 

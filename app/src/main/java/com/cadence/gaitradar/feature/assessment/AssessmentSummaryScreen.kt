@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cadence.gaitradar.core.metrics.GaitMetricsResult
 import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSession
 
@@ -32,6 +33,7 @@ import com.cadence.gaitradar.core.sensors.ImuSession
 fun AssessmentSummaryScreen(
     session: ImuSession?,
     qualityResult: QualityResult?,
+    gaitMetrics: GaitMetricsResult?,
     onRetry: () -> Unit,
     onReturnHome: () -> Unit
 ) {
@@ -101,7 +103,7 @@ fun AssessmentSummaryScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = if (isValid)
-                                "Session contains reliable 6-axis IMU samples ready for ML evaluation."
+                                "Session contains reliable 6-axis IMU samples ready for physical feature analysis."
                             else
                                 qualityResult?.failureMessage ?: "Session was incomplete or contained irregular motion data.",
                             style = MaterialTheme.typography.bodyLarge,
@@ -111,6 +113,49 @@ fun AssessmentSummaryScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Physical Gait Metrics Card (Only displayed for quality PASS sessions)
+                if (isValid && gaitMetrics != null && gaitMetrics.isCalculated) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = MaterialTheme.shapes.large,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Text(
+                                text = "Physical Gait Features",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            SummaryRow("Estimated Step Count", "${gaitMetrics.stepCount ?: 0} steps")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Cadence", if (gaitMetrics.cadenceStepsPerMin != null) "${"%.1f".format(gaitMetrics.cadenceStepsPerMin)} steps/min" else "N/A")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Mean Step Interval", if (gaitMetrics.meanStepIntervalMs != null) "${"%.0f".format(gaitMetrics.meanStepIntervalMs)} ms" else "N/A")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Step-Time Variability", if (gaitMetrics.stepTimeVariabilityMs != null) "${"%.1f".format(gaitMetrics.stepTimeVariabilityMs)} ms" else "N/A")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Accel Variability", if (gaitMetrics.accelVariability != null) "${"%.2f".format(gaitMetrics.accelVariability)} m/s²" else "N/A")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Gyro Variability", if (gaitMetrics.gyroVariability != null) "${"%.2f".format(gaitMetrics.gyroVariability)} rad/s" else "N/A")
+                            if (gaitMetrics.estimatedSpeedMps != null) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                SummaryRow("Estimated Speed", "${"%.2f".format(gaitMetrics.estimatedSpeedMps)} m/s")
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 if (session != null && qualityResult != null) {
                     Card(

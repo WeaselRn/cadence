@@ -1,5 +1,7 @@
 package com.cadence.gaitradar.core.di
 
+import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
+import com.cadence.gaitradar.core.metrics.GaitMetricsEngineImpl
 import com.cadence.gaitradar.core.quality.ImuQualityGate
 import com.cadence.gaitradar.core.quality.ImuQualityGateImpl
 import com.cadence.gaitradar.core.sensors.SensorCollector
@@ -25,4 +27,10 @@ abstract class AppModule {
     abstract fun bindImuQualityGate(
         imuQualityGateImpl: ImuQualityGateImpl
     ): ImuQualityGate
+
+    @Binds
+    @Singleton
+    abstract fun bindGaitMetricsEngine(
+        gaitMetricsEngineImpl: GaitMetricsEngineImpl
+    ): GaitMetricsEngine
 }

@@ -215,6 +215,7 @@ fun CadenceNavHost(
             AssessmentSummaryScreen(
                 session = assessmentState.completedSession,
                 qualityResult = assessmentState.qualityResult,
+                gaitMetrics = assessmentState.gaitMetrics,
                 onRetry = {
                     assessmentViewModel.resetSession()
                     navController.popBackStack(Screen.AssessmentIntro.route, false)
