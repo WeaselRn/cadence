@@ -230,13 +230,15 @@ class AssessmentViewModel @Inject constructor(
             _uiState.update { it.copy(processingStatus = ProcessingStatus.RUNNING_MODEL) }
             val prediction = mlInferenceAdapter.predict(session)
 
-            if (!prediction.isSuccess) {
+            val score = prediction.mobilityStabilityScore
+            if (!prediction.isSuccess || score == null) {
                 _uiState.update {
                     it.copy(
                         sessionStatus = SessionStatus.COMPLETED,
                         processingStatus = ProcessingStatus.PROCESSING_FAILED,
                         qualityResult = qualityEval,
-                        gaitMetrics = metrics
+                        gaitMetrics = metrics,
+                        mlPrediction = prediction
                     )
                 }
                 return@launch
@@ -248,7 +250,7 @@ class AssessmentViewModel @Inject constructor(
             val baselineStats = baselineEngine.computeBaseline(priorAssessments)
             val priorConsecutive = priorAssessments.firstOrNull()?.consecutiveDeviations ?: 0
             val comparison = baselineEngine.evaluateComparison(
-                currentScore = prediction.mobilityStabilityScore,
+                currentScore = score,
                 baselineStats = baselineStats,
                 priorConsecutiveDeviations = priorConsecutive
             )

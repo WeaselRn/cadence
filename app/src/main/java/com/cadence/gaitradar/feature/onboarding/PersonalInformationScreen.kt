@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,11 +14,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -37,7 +34,7 @@ fun PersonalInformationScreen(
     heightError: String?,
     onProfileChanged: (UserProfile.() -> UserProfile) -> Unit,
     onContinue: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -59,20 +56,9 @@ fun PersonalInformationScreen(
                 .padding(28.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                OutlinedButton(onClick = onBack) {
-                    Text("Back")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Column {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "Personal Information",
                     style = MaterialTheme.typography.headlineLarge,

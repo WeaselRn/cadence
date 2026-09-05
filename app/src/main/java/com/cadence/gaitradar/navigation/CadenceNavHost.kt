@@ -20,6 +20,7 @@ import com.cadence.gaitradar.feature.assessment.AssessmentReadinessScreen
 import com.cadence.gaitradar.feature.assessment.AssessmentSummaryScreen
 import com.cadence.gaitradar.feature.assessment.AssessmentViewModel
 import com.cadence.gaitradar.feature.assessment.SessionStatus
+import com.cadence.gaitradar.feature.history.AssessmentDetailScreen
 import com.cadence.gaitradar.feature.history.HistoryScreen
 import com.cadence.gaitradar.feature.home.HomeScreen
 import com.cadence.gaitradar.feature.onboarding.HowItWorksScreen
@@ -254,6 +255,17 @@ fun CadenceNavHost(
                 onStartAssessment = {
                     navController.navigate(Screen.AssessmentIntro.route)
                 },
+                onAssessmentClick = { assessmentId ->
+                    navController.navigate(Screen.AssessmentDetail.createRoute(assessmentId))
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.AssessmentDetail.route) {
+            AssessmentDetailScreen(
                 onBack = {
                     navController.popBackStack()
                 }

@@ -19,28 +19,23 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
     onNavigatePrivacyData: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit = {}
 ) {
-    var largerText by remember { mutableStateOf(false) }
-    var reducedMotion by remember { mutableStateOf(false) }
-    var voiceInstructions by remember { mutableStateOf(false) }
-    var hapticFeedback by remember { mutableStateOf(true) }
-    var assessmentReminders by remember { mutableStateOf(true) }
-    var autoDeleteSensors by remember { mutableStateOf(true) }
+    val settings by viewModel.appSettings.collectAsState()
 
     Box(
         modifier = Modifier
@@ -62,20 +57,9 @@ fun SettingsScreen(
                 .padding(28.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                OutlinedButton(onClick = onBack) {
-                    Text("Back")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Column {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "Settings",
                     style = MaterialTheme.typography.headlineLarge,
@@ -100,10 +84,10 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        SettingSwitchRow("Larger text", largerText) { largerText = it }
-                        SettingSwitchRow("Reduced motion", reducedMotion) { reducedMotion = it }
-                        SettingSwitchRow("Voice instructions", voiceInstructions) { voiceInstructions = it }
-                        SettingSwitchRow("Haptic feedback", hapticFeedback) { hapticFeedback = it }
+                        SettingSwitchRow("Larger text", settings.largerText) { viewModel.updateLargerText(it) }
+                        SettingSwitchRow("Reduced motion", settings.reducedMotion) { viewModel.updateReducedMotion(it) }
+                        SettingSwitchRow("Voice instructions", settings.voiceInstructions) { viewModel.updateVoiceInstructions(it) }
+                        SettingSwitchRow("Haptic feedback", settings.hapticFeedback) { viewModel.updateHapticFeedback(it) }
                     }
                 }
 
@@ -124,7 +108,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        SettingSwitchRow("Assessment reminders", assessmentReminders) { assessmentReminders = it }
+                        SettingSwitchRow("Assessment reminders", settings.assessmentReminders) { viewModel.updateAssessmentReminders(it) }
                     }
                 }
 
@@ -145,7 +129,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        SettingSwitchRow("Auto-delete temporary sensor data", autoDeleteSensors) { autoDeleteSensors = it }
+                        SettingSwitchRow("Auto-delete temporary sensor data", settings.autoDeleteSensors) { viewModel.updateAutoDeleteSensors(it) }
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = onNavigatePrivacyData,

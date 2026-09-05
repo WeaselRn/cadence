@@ -16,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,7 +30,7 @@ fun AssessmentReadinessScreen(
     isGyroAvailable: Boolean,
     isSensorsAvailable: Boolean,
     onStartWalk: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -53,20 +52,9 @@ fun AssessmentReadinessScreen(
                 .padding(28.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                OutlinedButton(onClick = onBack) {
-                    Text("Back")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Column {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "Sensor Readiness Check",
                     style = MaterialTheme.typography.headlineLarge,

@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cadence.gaitradar.core.AppConfig
 import com.cadence.gaitradar.core.baseline.BaselineComparison
 import com.cadence.gaitradar.core.baseline.LongitudinalStatus
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
@@ -269,8 +270,8 @@ fun AssessmentSummaryScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Debug ML Analysis Details Card
-                if (isValid && mlPrediction != null && mlPrediction.isSuccess) {
+                // Debug ML Analysis Details Card (Gated behind AppConfig.isDebugBuild)
+                if (AppConfig.isDebugBuild && isValid && mlPrediction != null && mlPrediction.isSuccess) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -297,7 +298,7 @@ fun AssessmentSummaryScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                             SummaryRow("Inference Time", "${mlPrediction.inferenceTimeMs} ms")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Raw p_irregular", "%.4f".format(mlPrediction.pIrregular))
+                            SummaryRow("Raw p_irregular", "%.4f".format(mlPrediction.pIrregular ?: 0f))
                         }
                     }
 

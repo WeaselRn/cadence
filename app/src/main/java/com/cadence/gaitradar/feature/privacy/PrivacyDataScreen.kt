@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -19,17 +19,75 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun PrivacyDataScreen(
-    onBack: () -> Unit
+    viewModel: PrivacyDataViewModel = hiltViewModel(),
+    onBack: () -> Unit = {}
 ) {
+    var showDeleteAssessmentsDialog by remember { mutableStateOf(false) }
+    var showDeleteAllLocalDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteAssessmentsDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAssessmentsDialog = false },
+            title = { Text("Delete All Assessment Data?") },
+            text = { Text("This will permanently remove all stored walking assessment history from this device. This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteAssessmentsDialog = false
+                        viewModel.deleteAllAssessmentData()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAssessmentsDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAllLocalDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllLocalDialog = false },
+            title = { Text("Delete All Local Application Data?") },
+            text = { Text("This will permanently reset all app settings, profile preferences, and assessment records on this device.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteAllLocalDialog = false
+                        viewModel.deleteAllLocalApplicationData()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete All Data")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllLocalDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,22 +108,11 @@ fun PrivacyDataScreen(
                 .padding(28.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                OutlinedButton(onClick = onBack) {
-                    Text("Back")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Column {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Your movement data is sensitive.",
+                    text = "Privacy & Data Controls",
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
@@ -118,31 +165,28 @@ fun PrivacyDataScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedButton(
+                            onClick = { showDeleteAssessmentsDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Delete all assessment data")
+                        }
+
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedButton(
-                            onClick = { /* Future action */ },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Delete assessment data")
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedButton(
-                            onClick = { /* Future action */ },
-                            modifier = Modifier.fillMaxWidth()
+                            onClick = { showDeleteAllLocalDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                         ) {
                             Text("Delete all local data")
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedButton(
-                            onClick = { /* Future action */ },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Auto-delete temporary raw sensor data")
                         }
                     }
                 }

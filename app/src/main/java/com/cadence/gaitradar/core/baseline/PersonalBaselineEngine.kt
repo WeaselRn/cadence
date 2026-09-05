@@ -18,16 +18,9 @@ interface PersonalBaselineEngine {
 @Singleton
 class PersonalBaselineEngineImpl @Inject constructor() : PersonalBaselineEngine {
 
-    companion object {
-        const val MIN_BASELINE_WALKS = 3
-        const val SUBSTANTIAL_DEVIATION_Z = -1.5f // Score 1.5 std dev below mean
-        const val MIN_SCORE_DROP_POINTS = 10f      // or 10 points below mean
-        const val MIN_STD_DEV = 1.0f                // Min std dev threshold for zero variance
-    }
-
     override fun computeBaseline(priorAssessments: List<AssessmentEntity>): BaselineStats {
         val count = priorAssessments.size
-        if (count < MIN_BASELINE_WALKS) {
+        if (count < BaselineConfig.MINIMUM_BASELINE_WALKS) {
             return BaselineStats(
                 sampleCount = count,
                 isEstablished = false,
@@ -44,7 +37,7 @@ class PersonalBaselineEngineImpl @Inject constructor() : PersonalBaselineEngine 
             varSum += (score - meanScore).toDouble().pow(2.0)
         }
         val rawStd = sqrt(varSum / count).toFloat()
-        val stdScore = rawStd.coerceAtLeast(MIN_STD_DEV)
+        val stdScore = rawStd.coerceAtLeast(BaselineConfig.MIN_STD_DEV)
 
         val cadences = priorAssessments.mapNotNull { it.cadence }
         val meanCadence = if (cadences.isNotEmpty()) cadences.average().toFloat() else null
@@ -71,18 +64,18 @@ class PersonalBaselineEngineImpl @Inject constructor() : PersonalBaselineEngine 
             return BaselineComparison(
                 status = LongitudinalStatus.BUILDING_BASELINE,
                 consecutiveDeviations = 0,
-                statusMessage = "Building personal baseline: ${baselineStats.sampleCount} / $MIN_BASELINE_WALKS walks completed."
+                statusMessage = "Building personal baseline: ${baselineStats.sampleCount} / ${BaselineConfig.MINIMUM_BASELINE_WALKS} walks completed."
             )
         }
 
         val delta = currentScore - baselineStats.meanScore
         val zScore = delta / baselineStats.stdScore
 
-        val isSubstantialDeviation = zScore <= SUBSTANTIAL_DEVIATION_Z || delta <= -MIN_SCORE_DROP_POINTS
+        val isSubstantialDeviation = zScore <= BaselineConfig.DEVIATION_Z_THRESHOLD || delta <= -BaselineConfig.MIN_SCORE_DROP_POINTS
 
         return if (isSubstantialDeviation) {
             val consecutive = priorConsecutiveDeviations + 1
-            val status = if (consecutive >= 3) {
+            val status = if (consecutive >= BaselineConfig.PERSISTENT_DEVIATION_COUNT) {
                 LongitudinalStatus.PERSISTENT_CHANGE
             } else {
                 LongitudinalStatus.CHANGE_DETECTED

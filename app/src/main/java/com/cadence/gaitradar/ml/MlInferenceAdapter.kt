@@ -6,8 +6,8 @@ import com.cadence.gaitradar.core.sensors.ImuSession
  * Structured ML inference result from the trained 1D TCN TFLite model.
  */
 data class MlPrediction(
-    val pIrregular: Float,
-    val mobilityStabilityScore: Int,
+    val pIrregular: Float?,
+    val mobilityStabilityScore: Int?,
     val modelVersion: String = "1.0.0",
     val inferenceTimeMs: Long = 0L,
     val inputShape: IntArray = intArrayOf(1, 1500, 6),
@@ -29,8 +29,8 @@ data class MlPrediction(
     }
 
     override fun hashCode(): Int {
-        var result = pIrregular.hashCode()
-        result = 31 * result + mobilityStabilityScore
+        var result = pIrregular?.hashCode() ?: 0
+        result = 31 * result + (mobilityStabilityScore?.hashCode() ?: 0)
         result = 31 * result + modelVersion.hashCode()
         result = 31 * result + inferenceTimeMs.hashCode()
         result = 31 * result + inputShape.contentHashCode()

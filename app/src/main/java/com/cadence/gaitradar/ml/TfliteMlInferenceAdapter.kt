@@ -75,8 +75,8 @@ class TfliteMlInferenceAdapter @Inject constructor(
         } catch (e: Exception) {
             val endTime = System.currentTimeMillis()
             MlPrediction(
-                pIrregular = 0.5f,
-                mobilityStabilityScore = 50,
+                pIrregular = null,
+                mobilityStabilityScore = null,
                 modelVersion = "1.0.0",
                 inferenceTimeMs = endTime - startTime,
                 inputShape = intArrayOf(1, 1500, 6),

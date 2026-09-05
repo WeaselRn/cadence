@@ -20,13 +20,15 @@ class AssessmentRepository @Inject constructor(
         mlPrediction: MlPrediction,
         consecutiveDeviations: Int = 0
     ) {
+        val score = mlPrediction.mobilityStabilityScore ?: return
+        val pIrr = mlPrediction.pIrregular ?: 0f
         val entity = AssessmentEntity(
             id = UUID.randomUUID().toString(),
             sessionId = session.sessionId,
             timestampMs = session.endTimeMs,
             durationMs = session.durationMs,
-            mobilityStabilityScore = mlPrediction.mobilityStabilityScore,
-            pIrregular = mlPrediction.pIrregular,
+            mobilityStabilityScore = score,
+            pIrregular = pIrr,
             modelVersion = mlPrediction.modelVersion,
             stepCount = gaitMetrics?.stepCount,
             cadence = gaitMetrics?.cadenceStepsPerMin,
@@ -39,7 +41,15 @@ class AssessmentRepository @Inject constructor(
         assessmentDao.insertAssessment(entity)
     }
 
+    fun getAssessmentById(id: String): Flow<AssessmentEntity?> {
+        return assessmentDao.getAssessmentById(id)
+    }
+
     suspend fun deleteAssessment(id: String) {
         assessmentDao.deleteAssessment(id)
+    }
+
+    suspend fun deleteAllAssessments() {
+        assessmentDao.deleteAllAssessments()
     }
 }

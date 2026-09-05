@@ -9,8 +9,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import java.util.ArrayDeque
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 @Singleton
 class SensorCollectorImpl @Inject constructor(
@@ -33,6 +35,14 @@ class SensorCollectorImpl @Inject constructor(
         return isAccelerometerAvailable() && isGyroscopeAvailable()
     }
 
+    companion object {
+        const val TARGET_SAMPLING_PERIOD_US = 20_000 // 20,000 µs = 20 ms = 50 Hz
+        const val MAX_PAIRING_TOLERANCE_NS = 15_000_000L // 15 ms max difference for accel/gyro alignment
+    }
+
+    private data class AccelData(val timestampNs: Long, val x: Float, val y: Float, val z: Float)
+    private data class GyroData(val timestampNs: Long, val x: Float, val y: Float, val z: Float)
+
     override fun startCollection(): Flow<ImuSample> = callbackFlow {
         val sm = sensorManager
         if (sm == null) {
@@ -48,55 +58,62 @@ class SensorCollectorImpl @Inject constructor(
             return@callbackFlow
         }
 
-        var latestAccelX = 0f
-        var latestAccelY = 0f
-        var latestAccelZ = 0f
-
-        var latestGyroX = 0f
-        var latestGyroY = 0f
-        var latestGyroZ = 0f
-
-        var hasReceivedAccel = false
-        var hasReceivedGyro = false
+        val accelQueue = ArrayDeque<AccelData>()
+        val gyroQueue = ArrayDeque<GyroData>()
 
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event == null) return
 
-                when (event.sensor.type) {
-                    Sensor.TYPE_ACCELEROMETER -> {
-                        latestAccelX = event.values[0]
-                        latestAccelY = event.values[1]
-                        latestAccelZ = event.values[2]
-                        hasReceivedAccel = true
+                synchronized(this) {
+                    when (event.sensor.type) {
+                        Sensor.TYPE_ACCELEROMETER -> {
+                            accelQueue.addLast(
+                                AccelData(event.timestamp, event.values[0], event.values[1], event.values[2])
+                            )
+                        }
+                        Sensor.TYPE_GYROSCOPE -> {
+                            gyroQueue.addLast(
+                                GyroData(event.timestamp, event.values[0], event.values[1], event.values[2])
+                            )
+                        }
                     }
-                    Sensor.TYPE_GYROSCOPE -> {
-                        latestGyroX = event.values[0]
-                        latestGyroY = event.values[1]
-                        latestGyroZ = event.values[2]
-                        hasReceivedGyro = true
-                    }
-                }
 
-                if (hasReceivedAccel && hasReceivedGyro) {
-                    val sample = ImuSample(
-                        timestampNs = event.timestamp,
-                        accelX = latestAccelX,
-                        accelY = latestAccelY,
-                        accelZ = latestAccelZ,
-                        gyroX = latestGyroX,
-                        gyroY = latestGyroY,
-                        gyroZ = latestGyroZ
-                    )
-                    trySend(sample)
+                    // Align queued accelerometer and gyroscope readings by nearest timestamp
+                    while (accelQueue.isNotEmpty() && gyroQueue.isNotEmpty()) {
+                        val accel = accelQueue.first
+                        val gyro = gyroQueue.first
+                        val timeDiffNs = accel.timestampNs - gyro.timestampNs
+
+                        if (abs(timeDiffNs) <= MAX_PAIRING_TOLERANCE_NS) {
+                            val sample = ImuSample(
+                                timestampNs = (accel.timestampNs + gyro.timestampNs) / 2,
+                                accelX = accel.x,
+                                accelY = accel.y,
+                                accelZ = accel.z,
+                                gyroX = gyro.x,
+                                gyroY = gyro.y,
+                                gyroZ = gyro.z
+                            )
+                            trySend(sample)
+                            accelQueue.removeFirst()
+                            gyroQueue.removeFirst()
+                        } else if (accel.timestampNs < gyro.timestampNs) {
+                            // Accel sample is too old without a matching gyro sample
+                            accelQueue.removeFirst()
+                        } else {
+                            // Gyro sample is too old without a matching accel sample
+                            gyroQueue.removeFirst()
+                        }
+                    }
                 }
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
 
-        sm.registerListener(listener, accelSensor, SensorManager.SENSOR_DELAY_GAME)
-        sm.registerListener(listener, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
+        sm.registerListener(listener, accelSensor, TARGET_SAMPLING_PERIOD_US)
+        sm.registerListener(listener, gyroSensor, TARGET_SAMPLING_PERIOD_US)
 
         awaitClose {
             sm.unregisterListener(listener)
