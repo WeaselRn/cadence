@@ -25,15 +25,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
 import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSession
+import com.cadence.gaitradar.ml.MlPrediction
 
 @Composable
 fun AssessmentSummaryScreen(
     session: ImuSession?,
     qualityResult: QualityResult?,
     gaitMetrics: GaitMetricsResult?,
+    mlPrediction: MlPrediction?,
     onRetry: () -> Unit,
     onReturnHome: () -> Unit
 ) {
@@ -76,7 +79,7 @@ fun AssessmentSummaryScreen(
 
                 Text(
                     text = if (isValid)
-                        "Raw 6-axis motion data passed quality gate."
+                        "Raw 6-axis motion data analyzed locally via TFLite TCN."
                     else
                         "The recording did not meet quality requirements for analysis.",
                     style = MaterialTheme.typography.bodyLarge,
@@ -84,6 +87,57 @@ fun AssessmentSummaryScreen(
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // Mobility Stability Score Card (Primary ML Result)
+                if (isValid && mlPrediction != null && mlPrediction.isSuccess) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Mobility Stability Score",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "${mlPrediction.mobilityStabilityScore}",
+                                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 64.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+
+                            Text(
+                                text = "Out of 100",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Higher score indicates movement dynamics consistent with regular walking patterns.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 // Quality Gate Status Banner
                 Card(
@@ -103,7 +157,7 @@ fun AssessmentSummaryScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = if (isValid)
-                                "Session contains reliable 6-axis IMU samples ready for physical feature analysis."
+                                "Session contains reliable 6-axis IMU samples evaluated by TFLite model."
                             else
                                 qualityResult?.failureMessage ?: "Session was incomplete or contained irregular motion data.",
                             style = MaterialTheme.typography.bodyLarge,
@@ -114,7 +168,7 @@ fun AssessmentSummaryScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Physical Gait Metrics Card (Only displayed for quality PASS sessions)
+                // Physical Gait Metrics Card
                 if (isValid && gaitMetrics != null && gaitMetrics.isCalculated) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -122,7 +176,7 @@ fun AssessmentSummaryScreen(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
                         shape = MaterialTheme.shapes.large,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp)
@@ -143,21 +197,14 @@ fun AssessmentSummaryScreen(
                             SummaryRow("Mean Step Interval", if (gaitMetrics.meanStepIntervalMs != null) "${"%.0f".format(gaitMetrics.meanStepIntervalMs)} ms" else "N/A")
                             Spacer(modifier = Modifier.height(10.dp))
                             SummaryRow("Step-Time Variability", if (gaitMetrics.stepTimeVariabilityMs != null) "${"%.1f".format(gaitMetrics.stepTimeVariabilityMs)} ms" else "N/A")
-                            Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Accel Variability", if (gaitMetrics.accelVariability != null) "${"%.2f".format(gaitMetrics.accelVariability)} m/s²" else "N/A")
-                            Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Gyro Variability", if (gaitMetrics.gyroVariability != null) "${"%.2f".format(gaitMetrics.gyroVariability)} rad/s" else "N/A")
-                            if (gaitMetrics.estimatedSpeedMps != null) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                SummaryRow("Estimated Speed", "${"%.2f".format(gaitMetrics.estimatedSpeedMps)} m/s")
-                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                if (session != null && qualityResult != null) {
+                // Debug ML Analysis Details Card
+                if (isValid && mlPrediction != null && mlPrediction.isSuccess) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -170,25 +217,25 @@ fun AssessmentSummaryScreen(
                             modifier = Modifier.padding(24.dp)
                         ) {
                             Text(
-                                text = "Validation Details",
+                                text = "ML Model Analysis (Debug)",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.secondary,
                                 fontWeight = FontWeight.SemiBold
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            SummaryRow("Duration", "${session.durationMs / 1000}s (${if (qualityResult.details.isDurationValid) "Valid ✓" else "Invalid ✗"})")
+                            SummaryRow("Model Version", mlPrediction.modelVersion)
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("IMU Samples", "${session.samples.size} (${if (qualityResult.details.isSampleCountValid) "Valid ✓" else "Low ✗"})")
+                            SummaryRow("Input Tensor Shape", "${mlPrediction.inputShape.joinToString(" × ")}")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Avg Rate", "${"%.1f".format(session.averageSamplingRateHz)} Hz (${if (qualityResult.details.isSamplingRateValid) "Valid ✓" else "Irregular ✗"})")
+                            SummaryRow("Inference Time", "${mlPrediction.inferenceTimeMs} ms")
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Finite Values", if (qualityResult.details.areValuesFinite) "Pass ✓" else "Fail ✗")
-                            Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Signal Sanity", if (qualityResult.details.isSignalSane) "Pass ✓" else "Flatline ✗")
+                            SummaryRow("Raw p_irregular", "%.4f".format(mlPrediction.pIrregular))
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 

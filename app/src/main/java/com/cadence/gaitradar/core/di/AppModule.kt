@@ -6,6 +6,8 @@ import com.cadence.gaitradar.core.quality.ImuQualityGate
 import com.cadence.gaitradar.core.quality.ImuQualityGateImpl
 import com.cadence.gaitradar.core.sensors.SensorCollector
 import com.cadence.gaitradar.core.sensors.SensorCollectorImpl
+import com.cadence.gaitradar.ml.MlInferenceAdapter
+import com.cadence.gaitradar.ml.TfliteMlInferenceAdapter
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -33,4 +35,10 @@ abstract class AppModule {
     abstract fun bindGaitMetricsEngine(
         gaitMetricsEngineImpl: GaitMetricsEngineImpl
     ): GaitMetricsEngine
+
+    @Binds
+    @Singleton
+    abstract fun bindMlInferenceAdapter(
+        tfliteMlInferenceAdapter: TfliteMlInferenceAdapter
+    ): MlInferenceAdapter
 }

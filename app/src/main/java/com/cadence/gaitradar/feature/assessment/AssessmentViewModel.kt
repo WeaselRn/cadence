@@ -9,6 +9,8 @@ import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSample
 import com.cadence.gaitradar.core.sensors.ImuSession
 import com.cadence.gaitradar.core.sensors.SensorCollector
+import com.cadence.gaitradar.ml.MlInferenceAdapter
+import com.cadence.gaitradar.ml.MlPrediction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -40,6 +42,7 @@ data class AssessmentUiState(
     val completedSession: ImuSession? = null,
     val qualityResult: QualityResult? = null,
     val gaitMetrics: GaitMetricsResult? = null,
+    val mlPrediction: MlPrediction? = null,
     val errorMessage: String? = null
 )
 
@@ -47,7 +50,8 @@ data class AssessmentUiState(
 class AssessmentViewModel @Inject constructor(
     private val sensorCollector: SensorCollector,
     private val qualityGate: ImuQualityGate,
-    private val gaitMetricsEngine: GaitMetricsEngine
+    private val gaitMetricsEngine: GaitMetricsEngine,
+    private val mlInferenceAdapter: MlInferenceAdapter
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssessmentUiState())
@@ -99,6 +103,7 @@ class AssessmentViewModel @Inject constructor(
                 completedSession = null,
                 qualityResult = null,
                 gaitMetrics = null,
+                mlPrediction = null,
                 errorMessage = null
             )
         }
@@ -123,6 +128,7 @@ class AssessmentViewModel @Inject constructor(
                 completedSession = null,
                 qualityResult = null,
                 gaitMetrics = null,
+                mlPrediction = null,
                 errorMessage = null
             )
         }
@@ -174,15 +180,22 @@ class AssessmentViewModel @Inject constructor(
         val qualityEval = qualityGate.evaluate(session)
 
         viewModelScope.launch {
-            // Extract Physical Gait Metrics on Dispatchers.Default if quality check passed
-            val metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
+            var metrics: GaitMetricsResult? = null
+            var prediction: MlPrediction? = null
+
+            // ML Guardrail: Execute metrics and ML inference ONLY IF quality check passed
+            if (qualityEval.isValid) {
+                metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
+                prediction = mlInferenceAdapter.predict(session)
+            }
 
             _uiState.update {
                 it.copy(
                     sessionStatus = SessionStatus.COMPLETED,
                     completedSession = session,
                     qualityResult = qualityEval,
-                    gaitMetrics = metrics
+                    gaitMetrics = metrics,
+                    mlPrediction = prediction
                 )
             }
         }
