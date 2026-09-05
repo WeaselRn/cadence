@@ -2,7 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-*.tflite
 data/synthetic/*.csv
 .DS_Store
 .ipynb_checkpoints/
