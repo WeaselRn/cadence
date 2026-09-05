@@ -6,3 +6,5 @@ venv/
 data/synthetic/*.csv
 .DS_Store
 .ipynb_checkpoints/
+*.keras
+*.npz
