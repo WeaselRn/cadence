@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,13 +25,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSession
 
 @Composable
 fun AssessmentSummaryScreen(
     session: ImuSession?,
+    qualityResult: QualityResult?,
+    onRetry: () -> Unit,
     onReturnHome: () -> Unit
 ) {
+    val isValid = qualityResult?.isValid == true
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -38,7 +44,7 @@ fun AssessmentSummaryScreen(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFFF8FAFC),
-                        Color(0xFFE0F2F1),
+                        if (isValid) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
                         Color(0xFFE3F2FD)
                     )
                 )
@@ -58,23 +64,55 @@ fun AssessmentSummaryScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Assessment Complete",
+                    text = if (isValid) "Assessment Complete" else "Quality Check Failed",
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Raw 6-axis motion data recorded successfully.",
+                    text = if (isValid)
+                        "Raw 6-axis motion data passed quality gate."
+                    else
+                        "The recording did not meet quality requirements for analysis.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                if (session != null) {
+                // Quality Gate Status Banner
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isValid) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                    ),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = if (isValid) "Quality Gate: PASSED ✓" else "Quality Gate: RETRY REQUIRED ⚠️",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = if (isValid) Color(0xFF2E7D32) else Color(0xFFE65100),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (isValid)
+                                "Session contains reliable 6-axis IMU samples ready for ML evaluation."
+                            else
+                                qualityResult?.failureMessage ?: "Session was incomplete or contained irregular motion data.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (session != null && qualityResult != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -87,7 +125,7 @@ fun AssessmentSummaryScreen(
                             modifier = Modifier.padding(24.dp)
                         ) {
                             Text(
-                                text = "Session Summary",
+                                text = "Validation Details",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
@@ -95,32 +133,55 @@ fun AssessmentSummaryScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            SummaryRow("Session ID", session.sessionId.take(8) + "...")
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SummaryRow("Duration", "${session.durationMs / 1000}s (${session.durationMs} ms)")
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SummaryRow("Total IMU Samples", "${session.samples.size}")
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SummaryRow("Avg Sampling Rate", "${"%.1f".format(session.averageSamplingRateHz)} Hz")
+                            SummaryRow("Duration", "${session.durationMs / 1000}s (${if (qualityResult.details.isDurationValid) "Valid ✓" else "Invalid ✗"})")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("IMU Samples", "${session.samples.size} (${if (qualityResult.details.isSampleCountValid) "Valid ✓" else "Low ✗"})")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Avg Rate", "${"%.1f".format(session.averageSamplingRateHz)} Hz (${if (qualityResult.details.isSamplingRateValid) "Valid ✓" else "Irregular ✗"})")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Finite Values", if (qualityResult.details.areValuesFinite) "Pass ✓" else "Fail ✗")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SummaryRow("Signal Sanity", if (qualityResult.details.isSignalSane) "Pass ✓" else "Flatline ✗")
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = onReturnHome,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 16.dp),
-                shape = MaterialTheme.shapes.medium
+                    .padding(bottom = 16.dp)
             ) {
-                Text(
-                    text = "Return Home",
-                    style = MaterialTheme.typography.titleLarge
-                )
+                if (!isValid) {
+                    Button(
+                        onClick = onRetry,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text(
+                            text = "Retry Assessment",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                OutlinedButton(
+                    onClick = onReturnHome,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        text = "Return Home",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
             }
         }
     }

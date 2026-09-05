@@ -1,20 +1,18 @@
-PHASE 3 — REAL IMU COLLECTION & MODEL-READY SESSION
-You are continuing the existing Android project Gait Functional Decline Radar. Phases 0, 1, and 2 are complete and working. Implement ONLY Phase 3 in this phase.
+PHASE 4 — DETERMINISTIC IMU DATA QUALITY GATE
+Implement ONLY Phase 4 after Phase 3 is complete.
 PRIMARY OBJECTIVE
-Connect the existing assessment UI to Android SensorManager and produce a timestamped six-axis ImuSession for later ML preprocessing. The mobile app uses sensors only; there is no camera, video, CameraX, or MediaPipe.
-END-TO-END CONTRACT
-Home → Assessment Introduction → Sensor Readiness → 30-second Collection → ImuSession → Phase 4 Quality Gate.
-SENSOR INPUT
-Collect accelerometer X/Y/Z and gyroscope X/Y/Z using SensorManager. Request approximately 50 Hz. Do not assume Android delivers exactly 50 Hz.
-SESSION MODEL
-ImuSample retains timestamp, accelX/Y/Z and gyroX/Y/Z. ImuSession contains a unique session ID, start/end timestamps, duration, samples, counts, and observed sampling information.
-SYNCHRONIZATION
-Sensor streams do not necessarily arrive simultaneously. Retain timestamps and create a deterministic temporally aligned six-axis representation. Do not pair array indices blindly. Keep the strategy practical for the MVP.
-MODEL-READINESS REQUIREMENT
-Preserve raw Android sensor coordinate values in the six-channel order ax, ay, az, gx, gy, gz. Do not normalize, gravity-remove, convert to magnitude, or replace the ML sequence with Phase 5 metrics. ML preprocessing happens in Phase 6.
-COLLECTION WINDOW
-Collect approximately 30 seconds. The eventual model window is 1500 frames at 50 Hz, but raw collection does not need exactly 1500 events. Retain enough timestamped data for Phase 6 to construct the fixed 1500 × 6 input.
-SAFETY AND LIFECYCLE
-Show pocket/walking instructions, readiness, timer, collecting state, and Stop. Unregister listeners on completion, cancellation, lifecycle interruption, and errors. Never leave sensors running indefinitely.
+Validate whether an ImuSession is reliable enough to enter ML preprocessing. The gate is local, deterministic, explainable, testable, and independent of TensorFlow Lite.
+VALIDATION CONTRACT
+ImuSession → ImuQualityGate.evaluate() → QualityResult → PASS or RETRY.
+REQUIRED CHECKS
+Check duration, minimum samples for both sensors, timestamp integrity, finite values, observed sampling stability, and basic signal sanity. Sampling is approximately 50 Hz; do not require exactly 50 Hz.
+DURATION
+Target approximately 30 seconds. Use centralized thresholds; very short sessions such as 5–10 seconds must fail. Do not require exactly 30.000 seconds.
+SIX-AXIS COMPLETENESS
+Both accelerometer and gyroscope streams are required. Reject sessions that cannot support ax, ay, az, gx, gy, gz.
+IMPORTANT ML GUARDRAIL
+If QualityResult.isValid is false, STOP. Do not calculate gait metrics, preprocess for ML, run TFLite, calculate Mobility Stability Score, or save a completed assessment.
+OUTPUT
+QualityResult exposes validity, failure reason, duration, sensor counts, observed rates, timestamp integrity, finite-value status, and signal sanity status. Keep thresholds centralized.
 VERIFICATION
-On Pixel 9 verify both sensors deliver data, timestamps increase, duration is approximately 30 seconds, each attempt uses a fresh buffer/session ID, listeners are released, and an ImuSession is produced. Do not run ML in Phase 3.
+Unit-test valid, short, missing-sensor, low-sample, bad-timestamp, NaN/Infinity, constant/broken-signal, and realistic sampling-variation cases. Test valid/invalid flow on Pixel 9.

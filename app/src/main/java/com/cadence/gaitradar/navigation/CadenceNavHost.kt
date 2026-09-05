@@ -1,6 +1,7 @@
 package com.cadence.gaitradar.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -182,9 +183,11 @@ fun CadenceNavHost(
             val assessmentState by assessmentViewModel.uiState.collectAsState()
 
             // Automatically navigate to Summary when completed
-            if (assessmentState.sessionStatus == SessionStatus.COMPLETED) {
-                navController.navigate(Screen.AssessmentSummary.route) {
-                    popUpTo(Screen.AssessmentIntro.route) { inclusive = true }
+            LaunchedEffect(assessmentState.sessionStatus) {
+                if (assessmentState.sessionStatus == SessionStatus.COMPLETED) {
+                    navController.navigate(Screen.AssessmentSummary.route) {
+                        popUpTo(Screen.AssessmentIntro.route) { inclusive = false }
+                    }
                 }
             }
 
@@ -208,6 +211,12 @@ fun CadenceNavHost(
 
             AssessmentSummaryScreen(
                 session = assessmentState.completedSession,
+                qualityResult = assessmentState.qualityResult,
+                onRetry = {
+                    navController.navigate(Screen.AssessmentIntro.route) {
+                        popUpTo(Screen.Home.route)
+                    }
+                },
                 onReturnHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

@@ -1,5 +1,7 @@
 package com.cadence.gaitradar.core.di
 
+import com.cadence.gaitradar.core.quality.ImuQualityGate
+import com.cadence.gaitradar.core.quality.ImuQualityGateImpl
 import com.cadence.gaitradar.core.sensors.SensorCollector
 import com.cadence.gaitradar.core.sensors.SensorCollectorImpl
 import dagger.Binds
@@ -17,4 +19,10 @@ abstract class AppModule {
     abstract fun bindSensorCollector(
         sensorCollectorImpl: SensorCollectorImpl
     ): SensorCollector
+
+    @Binds
+    @Singleton
+    abstract fun bindImuQualityGate(
+        imuQualityGateImpl: ImuQualityGateImpl
+    ): ImuQualityGate
 }

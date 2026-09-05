@@ -2,6 +2,8 @@ package com.cadence.gaitradar.feature.assessment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadence.gaitradar.core.quality.ImuQualityGate
+import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSample
 import com.cadence.gaitradar.core.sensors.ImuSession
 import com.cadence.gaitradar.core.sensors.SensorCollector
@@ -34,12 +36,14 @@ data class AssessmentUiState(
     val sampleCount: Int = 0,
     val lastSample: ImuSample? = null,
     val completedSession: ImuSession? = null,
+    val qualityResult: QualityResult? = null,
     val errorMessage: String? = null
 )
 
 @HiltViewModel
 class AssessmentViewModel @Inject constructor(
-    private val sensorCollector: SensorCollector
+    private val sensorCollector: SensorCollector,
+    private val qualityGate: ImuQualityGate
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssessmentUiState())
@@ -86,6 +90,7 @@ class AssessmentViewModel @Inject constructor(
                 sampleCount = 0,
                 lastSample = null,
                 completedSession = null,
+                qualityResult = null,
                 errorMessage = null
             )
         }
@@ -133,10 +138,14 @@ class AssessmentViewModel @Inject constructor(
             averageSamplingRateHz = avgHz
         )
 
+        // Evaluate Deterministic IMU Quality Gate
+        val qualityEval = qualityGate.evaluate(session)
+
         _uiState.update {
             it.copy(
                 sessionStatus = SessionStatus.COMPLETED,
-                completedSession = session
+                completedSession = session,
+                qualityResult = qualityEval
             )
         }
     }
