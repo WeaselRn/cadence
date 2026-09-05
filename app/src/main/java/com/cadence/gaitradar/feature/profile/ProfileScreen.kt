@@ -33,6 +33,7 @@ fun ProfileScreen(
     onEditProfile: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsState()
+    val baselineState by viewModel.baselineUiState.collectAsState()
 
     Box(
         modifier = Modifier
@@ -97,9 +98,9 @@ fun ProfileScreen(
                     Column(
                         modifier = Modifier.padding(24.dp)
                     ) {
-                        ProfileInfoRow("Completed Assessments", "0")
+                        ProfileInfoRow("Completed Assessments", "${baselineState.completedAssessmentCount}")
                         Spacer(modifier = Modifier.height(12.dp))
-                        ProfileInfoRow("Baseline Status", "Not established")
+                        ProfileInfoRow("Baseline Status", baselineState.baselineStatusText)
                     }
                 }
             }

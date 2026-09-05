@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cadence.gaitradar.core.baseline.LongitudinalStatus
 
 @Composable
 fun HomeScreen(
@@ -39,6 +40,7 @@ fun HomeScreen(
     onNavigateAbout: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsState()
+    val baselineState by viewModel.baselineUiState.collectAsState()
     val name = profile.firstName.ifBlank { "there" }
 
     Box(
@@ -79,6 +81,18 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Longitudinal Status Card
+                val comparison = baselineState.latestComparison
+                val statusTitle = comparison?.status?.title ?: "Building Personal Baseline"
+                val statusDesc = comparison?.statusMessage ?: "Complete at least 3 valid walking assessments to establish your personal mobility baseline."
+                val statusColor = when (comparison?.status) {
+                    LongitudinalStatus.BUILDING_BASELINE -> Color(0xFF0288D1)
+                    LongitudinalStatus.STABLE -> Color(0xFF2E7D32)
+                    LongitudinalStatus.CHANGE_DETECTED -> Color(0xFFE65100)
+                    LongitudinalStatus.PERSISTENT_CHANGE -> Color(0xFFC62828)
+                    null -> Color(0xFF0288D1)
+                }
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -91,18 +105,18 @@ fun HomeScreen(
                         modifier = Modifier.padding(28.dp)
                     ) {
                         Text(
-                            text = "Start your first mobility assessment",
+                            text = statusTitle,
                             style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = statusColor,
                             fontWeight = FontWeight.Bold
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Your first few assessments help establish your personal baseline.",
+                            text = statusDesc,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -122,49 +136,43 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Quick Navigation Cards
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onNavigateHistory,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("History")
-                    }
                     OutlinedButton(
                         onClick = onNavigateProfile,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Profile")
                     }
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
                     OutlinedButton(
-                        onClick = onNavigateSettings,
+                        onClick = onNavigateHistory,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Settings")
-                    }
-                    OutlinedButton(
-                        onClick = onNavigateAbout,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("About & Help")
+                        Text("History (${baselineState.assessmentCount})")
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                OutlinedButton(onClick = onNavigateSettings) {
+                    Text("Settings")
+                }
+                OutlinedButton(onClick = onNavigateAbout) {
+                    Text("About & Help")
+                }
+            }
         }
     }
 }

@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cadence.gaitradar.core.baseline.BaselineComparison
+import com.cadence.gaitradar.core.baseline.LongitudinalStatus
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
 import com.cadence.gaitradar.core.quality.QualityResult
 import com.cadence.gaitradar.core.sensors.ImuSession
@@ -37,6 +39,7 @@ fun AssessmentSummaryScreen(
     qualityResult: QualityResult?,
     gaitMetrics: GaitMetricsResult?,
     mlPrediction: MlPrediction?,
+    baselineComparison: BaselineComparison? = null,
     onRetry: () -> Unit,
     onReturnHome: () -> Unit
 ) {
@@ -139,6 +142,65 @@ fun AssessmentSummaryScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
+                // Personal Baseline Comparison Card
+                if (isValid && baselineComparison != null) {
+                    val statusColor = when (baselineComparison.status) {
+                        LongitudinalStatus.BUILDING_BASELINE -> Color(0xFF0288D1)
+                        LongitudinalStatus.STABLE -> Color(0xFF2E7D32)
+                        LongitudinalStatus.CHANGE_DETECTED -> Color(0xFFE65100)
+                        LongitudinalStatus.PERSISTENT_CHANGE -> Color(0xFFC62828)
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = MaterialTheme.shapes.large,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Text(
+                                text = "Personal Baseline Comparison",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = baselineComparison.status.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = statusColor,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = baselineComparison.statusMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            if (baselineComparison.scoreDelta != null) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                val deltaText = if (baselineComparison.scoreDelta >= 0f) {
+                                    "+${"%.1f".format(baselineComparison.scoreDelta)} pts vs usual baseline"
+                                } else {
+                                    "${"%.1f".format(baselineComparison.scoreDelta)} pts vs usual baseline"
+                                }
+                                SummaryRow("Delta vs Usual Baseline", deltaText)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 // Quality Gate Status Banner
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -227,7 +289,7 @@ fun AssessmentSummaryScreen(
 
                             SummaryRow("Model Version", mlPrediction.modelVersion)
                             Spacer(modifier = Modifier.height(10.dp))
-                            SummaryRow("Input Tensor Shape", "${mlPrediction.inputShape.joinToString(" × ")}")
+                            SummaryRow("Input Tensor Shape", mlPrediction.inputShape.joinToString(" × "))
                             Spacer(modifier = Modifier.height(10.dp))
                             SummaryRow("Inference Time", "${mlPrediction.inferenceTimeMs} ms")
                             Spacer(modifier = Modifier.height(10.dp))

@@ -18,5 +18,6 @@ data class AssessmentEntity(
     val meanStepIntervalMs: Float?,
     val stepTimeVariabilityMs: Float?,
     val accelVariability: Float?,
-    val gyroVariability: Float?
+    val gyroVariability: Float?,
+    val consecutiveDeviations: Int = 0
 )

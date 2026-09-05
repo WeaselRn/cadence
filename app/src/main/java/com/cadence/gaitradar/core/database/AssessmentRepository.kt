@@ -17,7 +17,8 @@ class AssessmentRepository @Inject constructor(
     suspend fun saveAssessment(
         session: ImuSession,
         gaitMetrics: GaitMetricsResult?,
-        mlPrediction: MlPrediction
+        mlPrediction: MlPrediction,
+        consecutiveDeviations: Int = 0
     ) {
         val entity = AssessmentEntity(
             id = UUID.randomUUID().toString(),
@@ -32,7 +33,8 @@ class AssessmentRepository @Inject constructor(
             meanStepIntervalMs = gaitMetrics?.meanStepIntervalMs,
             stepTimeVariabilityMs = gaitMetrics?.stepTimeVariabilityMs,
             accelVariability = gaitMetrics?.accelVariability,
-            gyroVariability = gaitMetrics?.gyroVariability
+            gyroVariability = gaitMetrics?.gyroVariability,
+            consecutiveDeviations = consecutiveDeviations
         )
         assessmentDao.insertAssessment(entity)
     }

@@ -217,6 +217,7 @@ fun CadenceNavHost(
                 qualityResult = assessmentState.qualityResult,
                 gaitMetrics = assessmentState.gaitMetrics,
                 mlPrediction = assessmentState.mlPrediction,
+                baselineComparison = assessmentState.baselineComparison,
                 onRetry = {
                     assessmentViewModel.resetSession()
                     navController.popBackStack(Screen.AssessmentIntro.route, false)

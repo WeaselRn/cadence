@@ -2,6 +2,9 @@ package com.cadence.gaitradar.feature.assessment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadence.gaitradar.core.baseline.BaselineComparison
+import com.cadence.gaitradar.core.baseline.BaselineStats
+import com.cadence.gaitradar.core.baseline.PersonalBaselineEngine
 import com.cadence.gaitradar.core.database.AssessmentRepository
 import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
@@ -18,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -44,6 +48,8 @@ data class AssessmentUiState(
     val qualityResult: QualityResult? = null,
     val gaitMetrics: GaitMetricsResult? = null,
     val mlPrediction: MlPrediction? = null,
+    val baselineStats: BaselineStats? = null,
+    val baselineComparison: BaselineComparison? = null,
     val errorMessage: String? = null
 )
 
@@ -53,7 +59,8 @@ class AssessmentViewModel @Inject constructor(
     private val qualityGate: ImuQualityGate,
     private val gaitMetricsEngine: GaitMetricsEngine,
     private val mlInferenceAdapter: MlInferenceAdapter,
-    private val assessmentRepository: AssessmentRepository
+    private val assessmentRepository: AssessmentRepository,
+    private val baselineEngine: PersonalBaselineEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssessmentUiState())
@@ -106,6 +113,8 @@ class AssessmentViewModel @Inject constructor(
                 qualityResult = null,
                 gaitMetrics = null,
                 mlPrediction = null,
+                baselineStats = null,
+                baselineComparison = null,
                 errorMessage = null
             )
         }
@@ -131,6 +140,8 @@ class AssessmentViewModel @Inject constructor(
                 qualityResult = null,
                 gaitMetrics = null,
                 mlPrediction = null,
+                baselineStats = null,
+                baselineComparison = null,
                 errorMessage = null
             )
         }
@@ -184,13 +195,33 @@ class AssessmentViewModel @Inject constructor(
         viewModelScope.launch {
             var metrics: GaitMetricsResult? = null
             var prediction: MlPrediction? = null
+            var baselineStats: BaselineStats? = null
+            var comparison: BaselineComparison? = null
 
-            // ML Guardrail & Persistence: Execute metrics, ML inference, and Room save ONLY IF quality check passed
+            // ML Guardrail & Baseline: Execute metrics, ML inference, baseline comparison, and Room save ONLY IF quality check passed
             if (qualityEval.isValid) {
                 metrics = gaitMetricsEngine.calculateMetrics(session, qualityEval)
                 prediction = mlInferenceAdapter.predict(session)
+
                 if (prediction.isSuccess) {
-                    assessmentRepository.saveAssessment(session, metrics, prediction)
+                    // Fetch prior completed assessments to build personal baseline (EXCLUDES CURRENT WALK)
+                    val priorAssessments = assessmentRepository.assessments.first()
+                    baselineStats = baselineEngine.computeBaseline(priorAssessments)
+
+                    val priorConsecutiveDeviations = priorAssessments.firstOrNull()?.consecutiveDeviations ?: 0
+                    comparison = baselineEngine.evaluateComparison(
+                        currentScore = prediction.mobilityStabilityScore,
+                        baselineStats = baselineStats,
+                        priorConsecutiveDeviations = priorConsecutiveDeviations
+                    )
+
+                    // Save assessment into Room with updated consecutive deviations count
+                    assessmentRepository.saveAssessment(
+                        session = session,
+                        gaitMetrics = metrics,
+                        mlPrediction = prediction,
+                        consecutiveDeviations = comparison.consecutiveDeviations
+                    )
                 }
             }
 
@@ -200,7 +231,9 @@ class AssessmentViewModel @Inject constructor(
                     completedSession = session,
                     qualityResult = qualityEval,
                     gaitMetrics = metrics,
-                    mlPrediction = prediction
+                    mlPrediction = prediction,
+                    baselineStats = baselineStats,
+                    baselineComparison = comparison
                 )
             }
         }

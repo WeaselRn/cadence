@@ -1,5 +1,7 @@
 package com.cadence.gaitradar.core.di
 
+import com.cadence.gaitradar.core.baseline.PersonalBaselineEngine
+import com.cadence.gaitradar.core.baseline.PersonalBaselineEngineImpl
 import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
 import com.cadence.gaitradar.core.metrics.GaitMetricsEngineImpl
 import com.cadence.gaitradar.core.quality.ImuQualityGate
@@ -41,4 +43,10 @@ abstract class AppModule {
     abstract fun bindMlInferenceAdapter(
         tfliteMlInferenceAdapter: TfliteMlInferenceAdapter
     ): MlInferenceAdapter
+
+    @Binds
+    @Singleton
+    abstract fun bindPersonalBaselineEngine(
+        personalBaselineEngineImpl: PersonalBaselineEngineImpl
+    ): PersonalBaselineEngine
 }
