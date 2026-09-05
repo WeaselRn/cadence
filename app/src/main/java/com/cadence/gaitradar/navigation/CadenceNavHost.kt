@@ -9,6 +9,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.cadence.gaitradar.feature.about.AboutScreen
+import com.cadence.gaitradar.feature.assessment.AssessmentIntroScreen
+import com.cadence.gaitradar.feature.history.HistoryScreen
 import com.cadence.gaitradar.feature.home.HomeScreen
 import com.cadence.gaitradar.feature.onboarding.HowItWorksScreen
 import com.cadence.gaitradar.feature.onboarding.OnboardingViewModel
@@ -16,6 +19,10 @@ import com.cadence.gaitradar.feature.onboarding.PersonalInformationScreen
 import com.cadence.gaitradar.feature.onboarding.PrivacyIntroScreen
 import com.cadence.gaitradar.feature.onboarding.SensorExplanationScreen
 import com.cadence.gaitradar.feature.onboarding.WelcomeScreen
+import com.cadence.gaitradar.feature.privacy.PrivacyDataScreen
+import com.cadence.gaitradar.feature.profile.EditProfileScreen
+import com.cadence.gaitradar.feature.profile.ProfileScreen
+import com.cadence.gaitradar.feature.settings.SettingsScreen
 
 @Composable
 fun CadenceNavHost(
@@ -36,6 +43,7 @@ fun CadenceNavHost(
         startDestination = startDestination,
         modifier = modifier
     ) {
+        // Onboarding flow
         composable(route = Screen.Welcome.route) {
             WelcomeScreen(
                 onGetStarted = {
@@ -106,8 +114,93 @@ fun CadenceNavHost(
             )
         }
 
+        // Main App Shell Flow
         composable(route = Screen.Home.route) {
-            HomeScreen()
+            HomeScreen(
+                onStartAssessment = {
+                    navController.navigate(Screen.AssessmentIntro.route)
+                },
+                onNavigateProfile = {
+                    navController.navigate(Screen.Profile.route)
+                },
+                onNavigateHistory = {
+                    navController.navigate(Screen.History.route)
+                },
+                onNavigateSettings = {
+                    navController.navigate(Screen.Settings.route)
+                },
+                onNavigateAbout = {
+                    navController.navigate(Screen.About.route)
+                }
+            )
+        }
+
+        composable(route = Screen.AssessmentIntro.route) {
+            AssessmentIntroScreen(
+                onGetReady = {
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.Profile.route) {
+            ProfileScreen(
+                onEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                }
+            )
+        }
+
+        composable(route = Screen.EditProfile.route) {
+            EditProfileScreen(
+                onSaved = {
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.History.route) {
+            HistoryScreen(
+                onStartAssessment = {
+                    navController.navigate(Screen.AssessmentIntro.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.PrivacyData.route) {
+            PrivacyDataScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.Settings.route) {
+            SettingsScreen(
+                onNavigatePrivacyData = {
+                    navController.navigate(Screen.PrivacyData.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.About.route) {
+            AboutScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

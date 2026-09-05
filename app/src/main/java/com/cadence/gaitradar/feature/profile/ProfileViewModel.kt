@@ -1,4 +1,4 @@
-package com.cadence.gaitradar.feature.home
+package com.cadence.gaitradar.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
+class ProfileViewModel @Inject constructor(
     preferencesRepository: OnboardingPreferencesRepository
 ) : ViewModel() {
     val userProfile: StateFlow<UserProfile> = preferencesRepository.userProfile

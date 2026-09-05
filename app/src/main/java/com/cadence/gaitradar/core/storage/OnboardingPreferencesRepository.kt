@@ -62,4 +62,14 @@ class OnboardingPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = true
         }
     }
+
+    suspend fun updateProfile(profile: UserProfile) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FIRST_NAME] = profile.firstName
+            preferences[PreferencesKeys.LAST_NAME] = profile.lastName
+            preferences[PreferencesKeys.AGE_OR_DOB] = profile.ageOrDob
+            preferences[PreferencesKeys.HEIGHT_CM] = profile.heightCm
+            preferences[PreferencesKeys.MOBILITY_CONTEXT] = profile.mobilityContext
+        }
+    }
 }
