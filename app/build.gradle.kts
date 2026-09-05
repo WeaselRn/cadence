@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation("org.tensorflow:tensorflow-lite:2.17.0")
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
