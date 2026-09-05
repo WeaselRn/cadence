@@ -27,6 +27,7 @@ import tensorflow as tf
 from src.synthetic.generator import generate_dataset, GeneratorConfig
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "gait_tcn.keras")
+CONTRACT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "model_contract.json")
 NORM_STATS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "normalization_stats.npz")
 QUANTIZED_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "gait_tcn_quantized.tflite")
 FLOAT32_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "gait_tcn_float32.tflite")
@@ -82,8 +83,17 @@ def run_interpreter(tflite_bytes: bytes, X: np.ndarray) -> np.ndarray:
 
 def main():
     model = tf.keras.models.load_model(MODEL_PATH)
-    stats = np.load(NORM_STATS_PATH)
-    channel_mean, channel_std = stats["channel_mean"], stats["channel_std"]
+    if os.path.exists(CONTRACT_PATH):
+        import json
+        with open(CONTRACT_PATH, "r", encoding="utf-8") as f:
+            contract = json.load(f)
+        channel_mean = np.array(contract["input"]["channel_mean"], dtype=np.float32)
+        channel_std = np.array(contract["input"]["channel_std"], dtype=np.float32)
+    elif os.path.exists(NORM_STATS_PATH):
+        stats = np.load(NORM_STATS_PATH)
+        channel_mean, channel_std = stats["channel_mean"], stats["channel_std"]
+    else:
+        raise FileNotFoundError("Neither model_contract.json nor normalization_stats.npz found.")
     sequence_length = model.input_shape[1]
 
     print("Converting to float32 TFLite (fallback)...")

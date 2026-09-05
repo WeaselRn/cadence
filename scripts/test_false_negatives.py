@@ -32,19 +32,22 @@ from src.synthetic.generator import (
 
 # Paths
 MODEL_PATH = os.path.join(PROJECT_ROOT, "data", "models", "gait_tcn.keras")
+CONTRACT_PATH = os.path.join(PROJECT_ROOT, "data", "models", "model_contract.json")
 STATS_PATH = os.path.join(PROJECT_ROOT, "data", "models", "normalization_stats.npz")
 
-# Candidate paths for UCI HAR Dataset
+# Candidate paths for UCI HAR Dataset (env var prioritized, followed by local data directory)
 CANDIDATE_UCI_PATHS = [
-    r"A:\UCI HAR Dataset",
+    os.environ.get("UCI_HAR_ROOT", ""),
     os.path.join(PROJECT_ROOT, "data", "UCI HAR Dataset"),
     os.path.join(PROJECT_ROOT, "data", "UCI_HAR_Dataset"),
 ]
+if os.path.exists(r"A:\UCI HAR Dataset"):
+    CANDIDATE_UCI_PATHS.append(r"A:\UCI HAR Dataset")
 
 
 def resolve_uci_har_root() -> str:
     for path in CANDIDATE_UCI_PATHS:
-        if os.path.exists(path) and os.path.exists(os.path.join(path, "activity_labels.txt")):
+        if path and os.path.exists(path) and os.path.exists(os.path.join(path, "activity_labels.txt")):
             return path
     return None
 
@@ -75,14 +78,23 @@ def print_metrics_block(title: str, tn: int, fp: int, tp: int, fn: int):
 
 
 def main():
-    if not os.path.exists(MODEL_PATH) or not os.path.exists(STATS_PATH):
-        raise FileNotFoundError("Trained model or normalization stats not found. Run train_tcn.py first.")
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"Trained model not found at {MODEL_PATH}. Run train_tcn.py first.")
 
     # 1. Load artifacts
     print("Loading model and normalization parameters...")
     model = tf.keras.models.load_model(MODEL_PATH)
-    stats = np.load(STATS_PATH)
-    mean, std = stats["channel_mean"], stats["channel_std"]
+    if os.path.exists(CONTRACT_PATH):
+        import json
+        with open(CONTRACT_PATH, "r", encoding="utf-8") as f:
+            contract = json.load(f)
+        mean = np.array(contract["input"]["channel_mean"], dtype=np.float32)
+        std = np.array(contract["input"]["channel_std"], dtype=np.float32)
+    elif os.path.exists(STATS_PATH):
+        stats = np.load(STATS_PATH)
+        mean, std = stats["channel_mean"], stats["channel_std"]
+    else:
+        raise FileNotFoundError("Neither model_contract.json nor normalization_stats.npz found.")
 
     # 2. Extract real held-out test windows
     uci_root = resolve_uci_har_root()

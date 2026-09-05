@@ -19,7 +19,23 @@ import tensorflow as tf
 from src.model.dataset_builder import build_training_bundle
 from src.model.tcn import build_tcn, compile_model
 
-UCI_HAR_ROOT = r"A:\UCI HAR Dataset"  # <-- set to your actual path, or None for synthetic-only
+# Candidate paths for UCI HAR Dataset (env var prioritized, followed by local data directory)
+CANDIDATE_UCI_PATHS = [
+    os.environ.get("UCI_HAR_ROOT", ""),
+    os.path.join(os.path.dirname(__file__), "..", "data", "UCI HAR Dataset"),
+    os.path.join(os.path.dirname(__file__), "..", "data", "UCI_HAR_Dataset"),
+]
+if os.path.exists(r"A:\UCI HAR Dataset"):
+    CANDIDATE_UCI_PATHS.append(r"A:\UCI HAR Dataset")
+
+
+def resolve_uci_har_root() -> str:
+    for path in CANDIDATE_UCI_PATHS:
+        if path and os.path.exists(path) and os.path.exists(os.path.join(path, "activity_labels.txt")):
+            return path
+    return None
+
+
 N_SYNTHETIC = 3000
 OVERSAMPLE_FACTOR = 12
 VAL_SPLIT = 0.1
@@ -28,13 +44,16 @@ BATCH_SIZE = 32
 SEED = 42
 
 MODEL_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "gait_tcn.keras")
+CONTRACT_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "model_contract.json")
 NORM_STATS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "models", "normalization_stats.npz")
 
 
 def main():
-    uci_root = UCI_HAR_ROOT if UCI_HAR_ROOT and os.path.exists(UCI_HAR_ROOT) else None
-    if UCI_HAR_ROOT and uci_root is None:
-        print(f"WARNING: UCI_HAR_ROOT '{UCI_HAR_ROOT}' not found -- training on synthetic data only.")
+    uci_root = resolve_uci_har_root()
+    if uci_root is None:
+        print("INFO: UCI HAR Dataset not found -- training on synthetic data only.")
+    else:
+        print(f"Found UCI HAR Dataset at: {uci_root}")
 
     print("Building dataset bundle...")
     bundle = build_training_bundle(
@@ -87,8 +106,56 @@ def main():
     os.makedirs(os.path.dirname(MODEL_OUT_PATH), exist_ok=True)
     model.save(MODEL_OUT_PATH)
     np.savez(NORM_STATS_PATH, channel_mean=bundle.channel_mean, channel_std=bundle.channel_std)
+    
+    # Export human-readable and git-trackable model contract
+    import json
+    channel_names = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
+    channel_units = ["m/s^2", "m/s^2", "m/s^2", "rad/s", "rad/s", "rad/s"]
+    contract = {
+        "model_name": "gait_tcn",
+        "version": "1.0.0",
+        "architecture": "1D Temporal Convolutional Network (3 causal blocks, dilations 1, 2, 4)",
+        "parameters": {
+            "total_params": int(model.count_params()),
+            "quantization_type": "INT8"
+        },
+        "input": {
+            "tensor_shape": [1, 1500, 6],
+            "dtype": "float32",
+            "sample_rate_hz": 50.0,
+            "window_duration_seconds": 30.0,
+            "coordinate_system": "Android Sensor Coordinate System (pocket carry)",
+            "channels": [
+                {
+                    "index": i,
+                    "name": channel_names[i],
+                    "unit": channel_units[i],
+                    "mean": float(bundle.channel_mean[i]),
+                    "std": float(bundle.channel_std[i])
+                }
+                for i in range(6)
+            ],
+            "channel_mean": [float(m) for m in bundle.channel_mean],
+            "channel_std": [float(s) for s in bundle.channel_std]
+        },
+        "output": {
+            "tensor_shape": [1, 1],
+            "dtype": "float32",
+            "name": "p_irregular",
+            "description": "Continuous probability in [0.0, 1.0] representing likelihood of atypical/perturbed gait dynamics"
+        },
+        "score_translation": {
+            "formula": "mobility_stability_score = round((1.0 - p_irregular) * 100)",
+            "range": [0, 100],
+            "output_dtype": "int"
+        }
+    }
+    with open(CONTRACT_OUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(contract, f, indent=2)
+
     print(f"\nSaved model to {MODEL_OUT_PATH}")
     print(f"Saved normalization stats to {NORM_STATS_PATH}")
+    print(f"Exported model contract to {CONTRACT_OUT_PATH}")
 
 
 if __name__ == "__main__":
