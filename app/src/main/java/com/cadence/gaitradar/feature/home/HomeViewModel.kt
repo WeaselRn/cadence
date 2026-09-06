@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cadence.gaitradar.core.baseline.BaselineComparison
 import com.cadence.gaitradar.core.baseline.BaselineStats
 import com.cadence.gaitradar.core.baseline.PersonalBaselineEngine
+import com.cadence.gaitradar.core.database.AssessmentEntity
 import com.cadence.gaitradar.core.database.AssessmentRepository
 import com.cadence.gaitradar.core.storage.OnboardingPreferencesRepository
 import com.cadence.gaitradar.core.storage.UserProfile
@@ -17,6 +18,7 @@ import javax.inject.Inject
 
 data class HomeBaselineUiState(
     val assessmentCount: Int = 0,
+    val latestAssessment: AssessmentEntity? = null,
     val baselineStats: BaselineStats? = null,
     val latestComparison: BaselineComparison? = null
 )
@@ -41,7 +43,6 @@ class HomeViewModel @Inject constructor(
             if (assessments.isEmpty()) {
                 HomeBaselineUiState(assessmentCount = 0)
             } else {
-                // Latest assessment is assessments.first()
                 val latest = assessments.first()
                 val prior = assessments.drop(1)
 
@@ -55,6 +56,7 @@ class HomeViewModel @Inject constructor(
 
                 HomeBaselineUiState(
                     assessmentCount = count,
+                    latestAssessment = latest,
                     baselineStats = stats,
                     latestComparison = comparison
                 )

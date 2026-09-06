@@ -29,10 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,15 +46,7 @@ fun AssessmentDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF8FAFC),
-                        Color(0xFFE3F2FD),
-                        Color(0xFFE0F2F1)
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
         if (showDeleteDialog) {
             AlertDialog(
@@ -105,7 +95,16 @@ fun AssessmentDetailScreen(
                 if (item != null) {
                     val dateStr = rememberFormattedDate(item.timestampMs)
 
-                    // Mobility Stability Score Card
+                    // 1. Overview Header
+                    Text(
+                        text = dateStr,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 2. Machine-Learning Model Result Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -119,17 +118,9 @@ fun AssessmentDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = dateStr,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Mobility Stability Score",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
+                                text = "MODEL-DERIVED MOBILITY SCORE",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
 
@@ -147,12 +138,47 @@ fun AssessmentDetailScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Generated directly by the trained on-device TensorFlow Lite TCN model from 30 seconds of 6-axis IMU walking dynamics.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Physical Gait Features Card
+                    // 3. Personal Baseline Comparison Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = MaterialTheme.shapes.large,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = "Personal Baseline Comparison",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            DetailRow("Assessment Score", "${item.mobilityStabilityScore} / 100")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DetailRow("Consecutive Deviations", "${item.consecutiveDeviations}")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DetailRow("Model Version", item.modelVersion)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 4. Physical Gait Features Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -181,7 +207,7 @@ fun AssessmentDetailScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Medical Disclaimer Card
+                    // 5. Medical Disclaimer Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -189,14 +215,14 @@ fun AssessmentDetailScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Notice",
+                                text = "Important Notice",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "This score is a movement-pattern consistency metric based on your walking dynamics. It is not a clinical diagnosis.",
+                                text = "This score is a movement-pattern consistency metric based on your walking dynamics. It is not a clinical diagnosis or medical assessment.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

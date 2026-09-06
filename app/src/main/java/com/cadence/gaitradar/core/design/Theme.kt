@@ -20,7 +20,10 @@ private val LightColorScheme = lightColorScheme(
     background = BackgroundLight,
     onBackground = OnBackgroundLight,
     surface = SurfaceLight,
-    onSurface = OnSurfaceLight
+    onSurface = OnSurfaceLight,
+    surfaceVariant = SurfaceVariantLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    outline = OutlineLight
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -28,12 +31,19 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimaryBlueDark,
     primaryContainer = PrimaryContainerBlueDark,
     onPrimaryContainer = OnPrimaryContainerBlueDark,
-    secondary = SecondaryTeal,
-    onSecondary = OnSecondaryWhite,
+    secondary = SecondaryTealDark,
+    onSecondary = OnSecondaryTealDark,
+    secondaryContainer = SecondaryContainerTealDark,
+    onSecondaryContainer = OnSecondaryContainerTealDark,
+    tertiary = TertiarySlate,
+    onTertiary = OnTertiaryWhite,
     background = BackgroundDark,
     onBackground = OnBackgroundDark,
     surface = SurfaceDark,
-    onSurface = OnSurfaceDark
+    onSurface = OnSurfaceDark,
+    surfaceVariant = SurfaceVariantDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark
 )
 
 @Composable

@@ -1,19 +1,14 @@
 package com.cadence.gaitradar.core.storage
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "cadence_preferences")
 
 data class UserProfile(
     val firstName: String = "",
@@ -25,7 +20,7 @@ data class UserProfile(
 
 @Singleton
 class OnboardingPreferencesRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val dataStore: DataStore<Preferences>
 ) {
     private object PreferencesKeys {
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
@@ -36,12 +31,12 @@ class OnboardingPreferencesRepository @Inject constructor(
         val MOBILITY_CONTEXT = stringPreferencesKey("mobility_context")
     }
 
-    val hasCompletedOnboarding: Flow<Boolean> = context.dataStore.data
+    val hasCompletedOnboarding: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false
         }
 
-    val userProfile: Flow<UserProfile> = context.dataStore.data
+    val userProfile: Flow<UserProfile> = dataStore.data
         .map { preferences ->
             UserProfile(
                 firstName = preferences[PreferencesKeys.FIRST_NAME] ?: "",
@@ -53,7 +48,7 @@ class OnboardingPreferencesRepository @Inject constructor(
         }
 
     suspend fun saveProfileAndCompleteOnboarding(profile: UserProfile) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.FIRST_NAME] = profile.firstName
             preferences[PreferencesKeys.LAST_NAME] = profile.lastName
             preferences[PreferencesKeys.AGE_OR_DOB] = profile.ageOrDob
@@ -64,7 +59,7 @@ class OnboardingPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateProfile(profile: UserProfile) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.FIRST_NAME] = profile.firstName
             preferences[PreferencesKeys.LAST_NAME] = profile.lastName
             preferences[PreferencesKeys.AGE_OR_DOB] = profile.ageOrDob

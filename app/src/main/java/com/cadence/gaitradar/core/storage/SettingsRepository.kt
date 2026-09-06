@@ -1,18 +1,13 @@
 package com.cadence.gaitradar.core.storage
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "cadence_preferences")
 
 data class AppSettings(
     val largerText: Boolean = false,
@@ -25,7 +20,7 @@ data class AppSettings(
 
 @Singleton
 class SettingsRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val dataStore: DataStore<Preferences>
 ) {
     private object PreferencesKeys {
         val LARGER_TEXT = booleanPreferencesKey("larger_text")
@@ -36,7 +31,7 @@ class SettingsRepository @Inject constructor(
         val AUTO_DELETE_SENSORS = booleanPreferencesKey("auto_delete_sensors")
     }
 
-    val appSettings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
+    val appSettings: Flow<AppSettings> = dataStore.data.map { preferences ->
         AppSettings(
             largerText = preferences[PreferencesKeys.LARGER_TEXT] ?: false,
             reducedMotion = preferences[PreferencesKeys.REDUCED_MOTION] ?: false,
@@ -48,43 +43,43 @@ class SettingsRepository @Inject constructor(
     }
 
     suspend fun updateLargerText(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LARGER_TEXT] = enabled
         }
     }
 
     suspend fun updateReducedMotion(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.REDUCED_MOTION] = enabled
         }
     }
 
     suspend fun updateVoiceInstructions(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.VOICE_INSTRUCTIONS] = enabled
         }
     }
 
     suspend fun updateHapticFeedback(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAPTIC_FEEDBACK] = enabled
         }
     }
 
     suspend fun updateAssessmentReminders(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.ASSESSMENT_REMINDERS] = enabled
         }
     }
 
     suspend fun updateAutoDeleteSensors(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_DELETE_SENSORS] = enabled
         }
     }
 
     suspend fun clearAllLocalData() {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences.clear()
         }
     }
