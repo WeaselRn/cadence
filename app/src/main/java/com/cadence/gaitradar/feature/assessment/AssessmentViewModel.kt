@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cadence.gaitradar.core.baseline.BaselineComparison
 import com.cadence.gaitradar.core.baseline.BaselineStats
 import com.cadence.gaitradar.core.baseline.PersonalBaselineEngine
+import com.cadence.gaitradar.core.database.AssessmentEntity
 import com.cadence.gaitradar.core.database.AssessmentRepository
 import com.cadence.gaitradar.core.metrics.GaitMetricsEngine
 import com.cadence.gaitradar.core.metrics.GaitMetricsResult
@@ -246,13 +247,31 @@ class AssessmentViewModel @Inject constructor(
 
             // Step 5: CALCULATING BASELINE
             _uiState.update { it.copy(processingStatus = ProcessingStatus.CALCULATING_BASELINE) }
-            val priorAssessments = assessmentRepository.assessments.first()
-            val baselineStats = baselineEngine.computeBaseline(priorAssessments)
-            val priorConsecutive = priorAssessments.firstOrNull()?.consecutiveDeviations ?: 0
+            val priorAssessments = assessmentRepository.assessments.first().sortedBy { it.timestampMs }
+            val tempCurrentEntity = AssessmentEntity(
+                id = "current_session_temp",
+                sessionId = session.sessionId,
+                timestampMs = session.endTimeMs,
+                durationMs = session.durationMs,
+                mobilityStabilityScore = score,
+                pIrregular = prediction.pIrregular ?: 0f,
+                modelVersion = prediction.modelVersion,
+                stepCount = metrics?.stepCount,
+                cadence = metrics?.cadenceStepsPerMin,
+                meanStepIntervalMs = metrics?.meanStepIntervalMs,
+                stepTimeVariabilityMs = metrics?.stepTimeVariabilityMs,
+                accelVariability = metrics?.accelVariability,
+                gyroVariability = metrics?.gyroVariability,
+                consecutiveDeviations = 0
+            )
+            val fullAssessments = priorAssessments + tempCurrentEntity
+
+            val baselineStats = baselineEngine.computeBaseline(fullAssessments)
             val comparison = baselineEngine.evaluateComparison(
                 currentScore = score,
-                baselineStats = baselineStats,
-                priorConsecutiveDeviations = priorConsecutive
+                currentTimestampMs = session.endTimeMs,
+                allAssessments = fullAssessments,
+                baselineStats = baselineStats
             )
 
             // Step 6: SAVING

@@ -21,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -291,6 +290,13 @@ fun AssessmentSummaryScreen(
                             SummaryRow("Inference Time", "${mlPrediction.inferenceTimeMs} ms")
                             Spacer(modifier = Modifier.height(10.dp))
                             SummaryRow("Raw p_irregular", "%.4f".format(mlPrediction.pIrregular ?: 0f))
+
+                            if (session != null) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                SummaryRow("Duration / Samples", "${session.durationMs / 1000}s / ${session.samples.size} samples")
+                                Spacer(modifier = Modifier.height(10.dp))
+                                SummaryRow("Sampling Rate", "%.1f Hz".format(session.averageSamplingRateHz))
+                            }
                         }
                     }
 

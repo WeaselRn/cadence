@@ -43,15 +43,15 @@ class HomeViewModel @Inject constructor(
             if (assessments.isEmpty()) {
                 HomeBaselineUiState(assessmentCount = 0)
             } else {
-                val latest = assessments.first()
-                val prior = assessments.drop(1)
+                val sortedAsc = assessments.sortedBy { it.timestampMs }
+                val latest = sortedAsc.last()
 
-                val stats = baselineEngine.computeBaseline(prior)
-                val priorConsecutive = prior.firstOrNull()?.consecutiveDeviations ?: 0
+                val stats = baselineEngine.computeBaseline(sortedAsc)
                 val comparison = baselineEngine.evaluateComparison(
                     currentScore = latest.mobilityStabilityScore,
-                    baselineStats = stats,
-                    priorConsecutiveDeviations = priorConsecutive
+                    currentTimestampMs = latest.timestampMs,
+                    allAssessments = sortedAsc,
+                    baselineStats = stats
                 )
 
                 HomeBaselineUiState(
